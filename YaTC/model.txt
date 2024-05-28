@@ -1,0 +1,112 @@
+[11:19:17.688840] Namespace(batch_size=64,
+steps=150000,
+save_steps_freq=10000,
+accum_iter=1,
+model='MAE_YaTC',
+input_size=40,
+mask_ratio=0.9,
+norm_pix_loss=False,
+weight_decay=0.05,
+lr=None,
+blr=0.001,
+min_lr=0.0,
+warmup_epochs=25,
+data_path='./data/ISCXVPN2016_MFR',
+output_dir='./output_dir',
+log_dir='./output_dir',
+device='cuda',
+seed=0,
+resume='',
+num_workers=10,
+pin_mem=True,
+world_size=1,
+local_rank=-1,
+dist_on_itp=False,
+dist_url='env://',
+distributed=False)
+[11:19:17.726307] Dataset ImageFolder
+    Number of datapoints: 2273
+    Root location: ./data/ISCXVPN2016_MFR\train
+    StandardTransform
+Transform: Compose(
+               Grayscale(num_output_channels=1)
+               ToTensor()
+               Normalize(mean=[0.5], std=[0.5])
+           )
+[11:19:17.727723] Sampler_train = <torch.utils.data.distributed.DistributedSampler object at 0x000002B8B9549C10>
+[11:19:19.016228] Model = MaskedAutoencoder(
+  (patch_embed): PatchEmbed(
+    (proj): Conv2d(1, 192, kernel_size=(2, 2), stride=(2, 2))
+  )
+  (blocks): ModuleList(
+    (0-3): 4 x Block(
+      (norm1): LayerNorm((192,), eps=1e-06, elementwise_affine=True)
+      (attn): Attention(
+        (qkv): Linear(in_features=192, out_features=576, bias=True)
+        (attn_drop): Dropout(p=0.0, inplace=False)
+        (proj): Linear(in_features=192, out_features=192, bias=True)
+        (proj_drop): Dropout(p=0.0, inplace=False)
+      )
+      (drop_path): Identity()
+      (norm2): LayerNorm((192,), eps=1e-06, elementwise_affine=True)
+      (mlp): Mlp(
+        (fc1): Linear(in_features=192, out_features=768, bias=True)
+        (act): GELU(approximate='none')
+        (fc2): Linear(in_features=768, out_features=192, bias=True)
+        (drop): Dropout(p=0.0, inplace=False)
+      )
+    )
+  )
+  (norm): LayerNorm((192,), eps=1e-06, elementwise_affine=True)
+  (decoder_embed): Linear(in_features=192, out_features=128, bias=True)
+  (decoder_blocks): ModuleList(
+    (0-1): 2 x Block(
+      (norm1): LayerNorm((128,), eps=1e-06, elementwise_affine=True)
+      (attn): Attention(
+        (qkv): Linear(in_features=128, out_features=384, bias=True)
+        (attn_drop): Dropout(p=0.0, inplace=False)
+        (proj): Linear(in_features=128, out_features=128, bias=True)
+        (proj_drop): Dropout(p=0.0, inplace=False)
+      )
+      (drop_path): Identity()
+      (norm2): LayerNorm((128,), eps=1e-06, elementwise_affine=True)
+      (mlp): Mlp(
+        (fc1): Linear(in_features=128, out_features=512, bias=True)
+        (act): GELU(approximate='none')
+        (fc2): Linear(in_features=512, out_features=128, bias=True)
+        (drop): Dropout(p=0.0, inplace=False)
+      )
+    )
+  )
+  (decoder_norm): LayerNorm((128,), eps=1e-06, elementwise_affine=True)
+  (decoder_pred): Linear(in_features=128, out_features=4, bias=True)
+)
+[11:19:19.022610] base lr: 1.00e-03
+[11:19:19.022610] actual lr: 2.50e-04
+[11:19:19.022610] accumulate grad iterations: 1
+[11:19:19.023673] effective batch size: 64
+[11:19:19.023673] AdamW (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.95)
+    capturable: False
+    differentiable: False
+    eps: 1e-08
+    foreach: None
+    fused: None
+    lr: 0.00025
+    maximize: False
+    weight_decay: 0.0
+
+Parameter Group 1
+    amsgrad: False
+    betas: (0.9, 0.95)
+    capturable: False
+    differentiable: False
+    eps: 1e-08
+    foreach: None
+    fused: None
+    lr: 0.00025
+    maximize: False
+    weight_decay: 0.05
+)
