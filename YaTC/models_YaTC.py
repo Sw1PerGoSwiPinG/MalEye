@@ -2,6 +2,7 @@ from functools import partial
 
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 
 import timm.models.vision_transformer
 from timm.models.vision_transformer import Block, DropPath, Mlp
@@ -11,6 +12,9 @@ from util.pos_embed import get_2d_sincos_pos_embed
 import skimage.filters.rank as sfr
 from skimage.morphology import disk
 import numpy as np
+
+
+from graphviz import Digraph
 
 
 class PatchEmbed(nn.Module):
@@ -295,6 +299,10 @@ class MaskedAutoencoder(nn.Module):
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
         pred = self.forward_decoder(latent, ids_restore)
         loss = self.forward_loss(imgs, pred, mask)
+        # loss.size() => torch.Size([])
+        # pred.size() => torch.Size([batch_size, 400, 4])
+        # mask.size() => torch.Size([batch_size, 400])
+
         return loss, pred, mask
 
 
@@ -313,3 +321,98 @@ def TraFormer_YaTC(**kwargs):
         img_size=40, patch_size=2, in_chans=1, embed_dim=192, depth=4, num_heads=16, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
+
+ 
+def draw_model(var, params=None):
+    """ Produces Graphviz representation of PyTorch autograd graph
+    Blue nodes are the Variables that require grad, orange are Tensors
+    saved for backward in torch.autograd.Function
+    Args:
+        var: output Variable
+        params: dict of (name, Variable) to add names to node that require grad
+    """
+    if params is not None:
+        assert isinstance(params.values()[0], Variable)
+        param_map = {id(v): k for k, v in params.items()}
+ 
+    node_attr = dict(style='filled',
+                     shape='box',
+                     align='left',
+                     fontsize='12',
+                     ranksep='0.1',
+                     height='0.2')
+    dot = Digraph(node_attr=node_attr, graph_attr=dict(size="12,12"))
+    seen = set()
+ 
+    def size_to_str(size):
+        return '('+(', ').join(['%d' % v for v in size])+')'
+ 
+    def add_nodes(var):
+        if var not in seen:
+            if torch.is_tensor(var):
+                dot.node(str(id(var)), size_to_str(var.size()), fillcolor='orange')
+            elif hasattr(var, 'variable'):
+                u = var.variable
+                name = param_map[id(u)] if params is not None else ''
+                node_name = '%s\n %s' % (name, size_to_str(u.size()))
+                dot.node(str(id(var)), node_name, fillcolor='lightblue')
+            else:
+                dot.node(str(id(var)), str(type(var).__name__))
+            seen.add(var)
+            if hasattr(var, 'next_functions'):
+                for u in var.next_functions:
+                    if u[0] is not None:
+                        dot.edge(str(id(u[0])), str(id(var)))
+                        add_nodes(u[0])
+            if hasattr(var, 'saved_tensors'):
+                for t in var.saved_tensors:
+                    dot.edge(str(id(t)), str(id(var)))
+                    add_nodes(t)
+    add_nodes(var.grad_fn)
+    return dot
+ 
+ 
+def draw_MAE():
+    model = MaskedAutoencoder(
+        img_size=40, patch_size=2, embed_dim=192, depth=4, num_heads=16,
+        decoder_embed_dim=128, decoder_depth=2, decoder_num_heads=16,
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6)
+    )
+    model_path = './output_dir/pretrained-model.pth'
+    model.load_state_dict(torch.load(model_path, map_location='cpu')['model'])
+    model.eval()
+    print(model)
+    
+    # import os
+    # from torchvision import transforms, datasets
+    # transform_train = transforms.Compose([
+    #         transforms.Grayscale(num_output_channels=1),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(0.5, 0.5),
+    #     ])
+    # dataset_train = datasets.ImageFolder(os.path.join('./data/ISCXVPN2016_MFR', 'train'), transform=transform_train)
+    # data_loader_train = torch.utils.data.DataLoader(
+    #     dataset_train, batch_size=4, num_workers=10, pin_memory=True, drop_last=True, shuffle=True
+    # )
+    # for sample in data_loader_train:
+        # loss, pred, mask = model(sample, mask_ratio=0.9)
+    
+    loss, _, _ = model(torch.rand(4, 1, 40, 40)-1, mask_ratio=0.9)
+    graph = draw_model(loss)
+    graph.view()
+ 
+    params = list(model.parameters())
+    total_param_cnt = 0
+    for param in params:
+        param_cnt = 1
+        print("该层的结构：" + str(list(param.size())))
+        for size in param.size():
+            param_cnt *= size
+        print("该层参数和：" + str(param_cnt))
+        total_param_cnt = total_param_cnt + param_cnt
+
+    print("总参数数量和：" + str(total_param_cnt))
+
+
+if __name__ == '__main__':
+    draw_MAE()

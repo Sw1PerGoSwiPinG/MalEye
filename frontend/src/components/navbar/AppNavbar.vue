@@ -13,7 +13,7 @@
         </Transition>
         <RouterLink to="/dashboard" aria-label="Visit home page">
           <!-- <VuesticLogo /> -->
-          <img src="../../../public/bupt.png" alt="北京邮电大学" style="height: 64px;">
+          <img src="../../../bupt.png" alt="北京邮电大学" style="height: 64px;">
         </RouterLink>
       </div>
     </template>
@@ -27,7 +27,7 @@
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '../../stores/global-store'
 import AppNavbarActions from './components/AppNavbarActions.vue'
-import VuesticLogo from '../VuesticLogo.vue'
+// import VuesticLogo from '../VuesticLogo.vue'
 
 defineProps({
   isMobile: { type: Boolean, default: false },

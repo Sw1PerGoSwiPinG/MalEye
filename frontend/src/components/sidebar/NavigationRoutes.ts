@@ -26,10 +26,24 @@ export default {
       },
     },
     {
-      name: 'train',
-      displayName: 'menu.modelTraining',
+      name: 'mfr',
+      displayName: 'menu.mfr',
+      meta: {
+        iconName: 'apps',
+      },
+    },
+    {
+      name: 'pre-train',
+      displayName: 'menu.pre-train',
       meta: {
         iconName: 'model_training',
+      },
+    },
+    {
+      name: 'fine-tune',
+      displayName: 'menu.fine-tune',
+      meta: {
+        iconName: 'tune',
       },
     },
     {

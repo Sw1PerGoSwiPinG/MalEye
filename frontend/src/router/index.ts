@@ -25,12 +25,22 @@ const routes: Array<RouteRecordRaw> = [
       {
         name: 'dataset',
         path: 'dataset',
-        component: () => import('../pages/2dataset/datasetPage.vue'),
+        component: () => import('../pages/2.1dataset/datasetPage.vue'),
       },
       {
-        name: 'train',
-        path: 'train',
-        component: () => import('../pages/3model/modelPage.vue'),
+        name: 'mfr',
+        path: 'mfr',
+        component: () => import('../pages/2.2mfr/mfrPage.vue'),
+      },
+      {
+        name: 'pre-train',
+        path: 'pre-train',
+        component: () => import('../pages/3.1pre-train/modelPage.vue'),
+      },
+      {
+        name: 'fine-tune',
+        path: 'fine-tune',
+        component: () => import('../pages/3.2fine-tune/finetunePage.vue'),
       },
       {
         name: 'detection',

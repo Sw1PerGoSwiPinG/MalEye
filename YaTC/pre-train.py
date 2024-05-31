@@ -26,6 +26,29 @@ import PIL
 
 from engine import pretrain_one_epoch
 
+"""
+参数说明：
+    batch_size：每个 GPU 的批量大小
+    steps：总训练步数
+    save_steps_freq：保存检查点的频率
+    accum_iter：梯度累积步数，用于增加有效批量大小
+    model：要训练的模型名称
+    input_size：输入图像的尺寸
+    mask_ratio：掩码比例，即移除补丁的百分比
+    norm_pix_loss：是否使用归一化像素作为计算损失的目标
+    weight_decay：权重衰减系数
+    lr 和 blr：学习率设置
+    min_lr：最小学习率
+    warmup_epochs：学习率预热的 epoch 数
+    data_path：数据集路径
+    output_dir 和 log_dir：输出目录和日志目录
+    device：训练设备
+    seed：随机种子
+    resume：从检查点恢复训练
+    num_workers：数据加载器的工作线程数
+    pin_mem：是否将 CPU 内存固定在 DataLoader 中以提高传输效率
+    world_size、local_rank、dist_on_itp、dist_url：分布式训练参数
+"""
 
 def get_args_parser():
     parser = argparse.ArgumentParser('YaTC pre-training', add_help=False)
@@ -103,17 +126,18 @@ def main(args):
 
     device = torch.device(args.device)
 
-    # fix the seed for reproducibility
+    # 固定种子
     seed = args.seed + misc.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
 
+    # 提高卷积操作的速度
     cudnn.benchmark = True
 
     mean = [0.5]
     std = [0.5]
 
-    # simple augmentation
+    # 数据增广
     transform_train = transforms.Compose([
             transforms.Grayscale(num_output_channels=1),
             transforms.ToTensor(),
@@ -122,7 +146,8 @@ def main(args):
     dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
     print(dataset_train)
 
-    if True:  # args.distributed:
+    # if True:  # args.distributed:
+    if args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
         sampler_train = torch.utils.data.DistributedSampler(
@@ -139,6 +164,7 @@ def main(args):
     #     log_writer = None
     log_writer = None
 
+    args.batch_size = 4
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train, sampler=sampler_train,
         batch_size=args.batch_size,
@@ -146,10 +172,15 @@ def main(args):
         pin_memory=args.pin_mem,
         drop_last=True,
     )
+    # for obj in data_loader_train:
+    #     mfr = obj[0][0][0].numpy()
+    #     mfr = np.uint8(mfr)
+    #     from PIL import Image, ImageOps
+    #     image = ImageOps.invert(Image.fromarray(mfr))
+    #     image.show()
 
-    # define the model
+    # 定义模型
     model = models_YaTC.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
-
     model.to(device)
 
     model_without_ddp = model
@@ -170,7 +201,7 @@ def main(args):
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         model_without_ddp = model.module
 
-    # following timm: set wd as 0 for bias and norm layers
+    # 权重衰减 + AdamW优化器
     param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
     print(optimizer)
@@ -179,6 +210,7 @@ def main(args):
     misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
 
     epochs = int(args.steps / len(data_loader_train)) + 1
+    # 数据集长度：17，总epoch数：8824
 
     print(f"Start training for {args.steps} steps")
     start_time = time.time()

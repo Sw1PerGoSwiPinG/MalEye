@@ -42,12 +42,13 @@ def pretrain_one_epoch(model: torch.nn.Module,
         steps = steps_of_one_epoch * epoch + data_iter_step
         metric_logger.update(steps=int(steps))
 
-        # we use a per iteration (instead of per epoch) lr scheduler
+        # 学习率策略：per iteration (instead of per epoch)
         if data_iter_step % accum_iter == 0:
             lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
 
         samples = samples.to(device, non_blocking=True)
 
+        # 前向传播 计算损失
         with torch.cuda.amp.autocast():
             loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
 
@@ -57,6 +58,7 @@ def pretrain_one_epoch(model: torch.nn.Module,
             print("Loss is {}, stopping training".format(loss_value))
             sys.exit(1)
 
+        # 反向传播 梯度累积
         loss /= accum_iter
         loss_scaler(loss, optimizer, parameters=model.parameters(),
                     update_grad=(data_iter_step + 1) % accum_iter == 0)
@@ -84,7 +86,7 @@ def pretrain_one_epoch(model: torch.nn.Module,
                 loss_scaler=loss_scaler, epoch=epoch, name='step'+str(steps))
 
 
-    # gather the stats from all processes
+    # 同步进程之间的统计信息
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
