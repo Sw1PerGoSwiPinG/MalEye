@@ -7,8 +7,8 @@ import torch
 from timm.data import Mixup
 from timm.utils import accuracy
 
-import util.misc as misc
-import util.lr_sched as lr_sched
+import YaTC.util.misc as misc
+import YaTC.util.lr_sched as lr_sched
 
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 
@@ -18,7 +18,7 @@ import numpy as np
 
 def pretrain_one_epoch(model: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, loss_scaler,
+                    device: torch.device, epoch: int, epochs: int, loss_scaler,
                     log_writer=None,
                     model_without_ddp=None,
                     args=None):
@@ -44,7 +44,7 @@ def pretrain_one_epoch(model: torch.nn.Module,
 
         # 学习率策略：per iteration (instead of per epoch)
         if data_iter_step % accum_iter == 0:
-            lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
+            lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, epochs, args)
 
         samples = samples.to(device, non_blocking=True)
 

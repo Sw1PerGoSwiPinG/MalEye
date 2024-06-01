@@ -61,7 +61,7 @@ const formData = reactive({
 const submit = () => {
   if (validate()) {
     init({ message: "登录成功 :)", color: 'success' })
-    push({ name: 'dashboard' })
+    push({ name: 'index' })
   }
 }
 </script>

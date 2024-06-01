@@ -7,7 +7,7 @@ from torch.autograd import Variable
 import timm.models.vision_transformer
 from timm.models.vision_transformer import Block, DropPath, Mlp
 
-from util.pos_embed import get_2d_sincos_pos_embed
+from YaTC.util.pos_embed import get_2d_sincos_pos_embed
 
 import skimage.filters.rank as sfr
 from skimage.morphology import disk
@@ -341,7 +341,7 @@ def draw_model(var, params=None):
                      fontsize='12',
                      ranksep='0.1',
                      height='0.2')
-    dot = Digraph(node_attr=node_attr, graph_attr=dict(size="12,12"))
+    dot = Digraph(node_attr=node_attr, graph_attr=dict(size="100,100", dpi="500"))
     seen = set()
  
     def size_to_str(size):
@@ -401,17 +401,17 @@ def draw_MAE():
     graph = draw_model(loss)
     graph.view()
  
-    params = list(model.parameters())
-    total_param_cnt = 0
-    for param in params:
-        param_cnt = 1
-        print("该层的结构：" + str(list(param.size())))
-        for size in param.size():
-            param_cnt *= size
-        print("该层参数和：" + str(param_cnt))
-        total_param_cnt = total_param_cnt + param_cnt
+    # params = list(model.parameters())
+    # total_param_cnt = 0
+    # for param in params:
+    #     param_cnt = 1
+    #     print("该层的结构：" + str(list(param.size())))
+    #     for size in param.size():
+    #         param_cnt *= size
+    #     print("该层参数和：" + str(param_cnt))
+    #     total_param_cnt = total_param_cnt + param_cnt
 
-    print("总参数数量和：" + str(total_param_cnt))
+    # print("总参数数量和：" + str(total_param_cnt))
 
 
 if __name__ == '__main__':

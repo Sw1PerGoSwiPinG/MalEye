@@ -22,14 +22,14 @@ import PIL
 
 from torchvision import datasets, transforms
 
-import util.lr_decay as lrd
-import util.misc as misc
-from util.pos_embed import interpolate_pos_embed
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
+import YaTC.util.lr_decay as lrd
+import YaTC.util.misc as misc
+from YaTC.util.pos_embed import interpolate_pos_embed
+from YaTC.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
-import models_YaTC
+import YaTC.models_YaTC as models_YaTC
 
-from engine import train_one_epoch, evaluate
+from YaTC.engine import train_one_epoch, evaluate
 
 
 def get_args_parser():

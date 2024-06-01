@@ -1,4 +1,4 @@
-.pptx
+*.pptx
 
-/YaTC/data/
-/YaTC/MFR_test/
+/backend/YaTC/data/
+/backend/YaTC/MFR_test/

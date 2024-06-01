@@ -1,13 +1,6 @@
 <template>
   <div class="container">
     <div class="top-section">
-      <div class="gauge-container">
-        <div id="gaugeChart" class="gauge-chart"></div>
-        <div class="gauge-buttons">
-          <button @click="startTraining" class="start-button">开始训练</button>
-          <button @click="stopTraining" class="stop-button">停止训练</button>
-        </div>
-      </div>
       <div class="form-container">
         <form @submit.prevent="submitForm">
           <!-- 表单输入项 -->
@@ -22,20 +15,27 @@
               <option value="max">max</option>
             </select>
           </div>
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label>启用DGL</label>
             <input v-model="form.enableDGL" type="checkbox" />
-          </div>
-          <div class="form-buttons">
-            <button type="submit" class="submit-button">提交</button>
-            <button type="reset" @click="resetForm" class="reset-button">重置</button>
-          </div>
+          </div> -->
         </form>
+      </div>
+      <div class="gauge-container">
+        <div id="gaugeChart" class="gauge-chart"></div>
+        <div class="gauge-buttons">
+            <VaButton color="info" class="mb-2 start-button" @click="startTraining" style="width: 30%; height: 40px;">
+              开始微调
+            </VaButton>
+            <VaButton color="warning" class="mb-2 stop-button" @click="stopTraining" style="width: 30%; height: 40px;">
+              停止微调
+            </VaButton>
+        </div>
       </div>
     </div>
     <div class="bottom-section">
       <div class="training-steps-container">
-        <h2>训练流程</h2>
+        <div style="font-size: x-large; font-weight: bold; margin-bottom: 20px">微调流程</div>
         <ul>
           <li v-for="(step, index) in trainingSteps" :key="index" @click="selectStep(step)">
             {{ step.name }}
@@ -43,9 +43,9 @@
         </ul>
       </div>
       <div class="chart-display-container">
-        <h2>{{ selectedStep.name }}</h2>
+        <div style="font-size: large; font-weight: bold;">{{ selectedStep.name }}</div>
         <div :id="selectedStep.chartId" class="chart" v-if="selectedStep.chartId"></div>
-        <p v-else>选择一个流程以显示详细信息。</p>
+        <div v-else>选择一个流程以显示详细信息。</div>
       </div>
     </div>
   </div>
@@ -99,11 +99,11 @@ export default {
             type: 'gauge',
             progress: {
               show: true,
-              width: 18
+              width: 30
             },
             axisLine: {
               lineStyle: {
-                width: 18
+                width: 30
               }
             },
             pointer: {
@@ -179,12 +179,12 @@ export default {
 
 .top-section {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   margin-bottom: 20px;
 }
 
 .gauge-container {
-  width: 48%;
+  width: 65%;
   background-color: #f0f4f8;
   padding: 20px;
   border-radius: 10px;
@@ -193,12 +193,13 @@ export default {
 
 .gauge-chart {
   width: 100%;
-  height: 300px;
+  /* height: 300px; */
+  height: 85%;
 }
 
 .gauge-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   margin-top: 10px;
 }
 
@@ -221,7 +222,7 @@ export default {
 }
 
 .form-container {
-  width: 48%;
+  width: 32%;
   background-color: #f0f4f8;
   padding: 20px;
   border-radius: 10px;
@@ -262,12 +263,18 @@ export default {
 
 .bottom-section {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
 }
 
+.training-steps-container {
+  width: 32%;
+}
+.chart-display-container {
+  width: 65%;
+
+}
 .training-steps-container,
 .chart-display-container {
-  width: 48%;
   background-color: #f0f4f8; /* 浅蓝色背景 */
   padding: 20px;
   border-radius: 10px;

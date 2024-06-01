@@ -17,14 +17,14 @@ import timm
 assert timm.__version__ == "0.3.2"  # version check
 import timm.optim.optim_factory as optim_factory
 
-import util.misc as misc
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
+import YaTC.util.misc as misc
+from YaTC.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
-import models_YaTC
+import YaTC.models_YaTC as models_YaTC
 
 import PIL
 
-from engine import pretrain_one_epoch
+from YaTC.engine import pretrain_one_epoch
 
 """
 参数说明：
@@ -118,13 +118,12 @@ def get_args_parser():
     return parser
 
 
-def main(args):
+"""Step 1"""
+def data_process(args):
     misc.init_distributed_mode(args)
 
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(', ', ',\n'))
-
-    device = torch.device(args.device)
 
     # 固定种子
     seed = args.seed + misc.get_rank()
@@ -162,9 +161,10 @@ def main(args):
     #     log_writer = SummaryWriter(log_dir=args.log_dir)
     # else:
     #     log_writer = None
-    log_writer = None
+    # log_writer = None
 
     args.batch_size = 4
+    # args.batch_size = 1
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train, sampler=sampler_train,
         batch_size=args.batch_size,
@@ -172,15 +172,15 @@ def main(args):
         pin_memory=args.pin_mem,
         drop_last=True,
     )
-    # for obj in data_loader_train:
-    #     mfr = obj[0][0][0].numpy()
-    #     mfr = np.uint8(mfr)
-    #     from PIL import Image, ImageOps
-    #     image = ImageOps.invert(Image.fromarray(mfr))
-    #     image.show()
 
+    return dataset_train, data_loader_train
+
+
+"""Step 2"""
+def model_process(args, data_loader_train):
     # 定义模型
     model = models_YaTC.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
+    device = torch.device(args.device)
     model.to(device)
 
     model_without_ddp = model
@@ -205,28 +205,35 @@ def main(args):
     param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
     print(optimizer)
+
+    return model, model_without_ddp, optimizer, device
+
+
+"""Step 3"""
+def train_process(args, data_loader_train, model, model_without_ddp, optimizer, device, log_writer=None):
     loss_scaler = NativeScaler()
-
     misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
-
-    epochs = int(args.steps / len(data_loader_train)) + 1
+    # epochs = int(args.steps / len(data_loader_train)) + 1
     # 数据集长度：17，总epoch数：8824
-
+    epochs = int(args.steps)
     print(f"Start training for {args.steps} steps")
     start_time = time.time()
+    stats_list = []
     for epoch in range(0, epochs):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = pretrain_one_epoch(
             model, data_loader_train,
-            optimizer, device, epoch, loss_scaler,
+            optimizer, device, epoch, epochs, loss_scaler,
             log_writer=log_writer,
             model_without_ddp=model_without_ddp,
             args=args
         )
+        stats_list.append(train_stats)
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      'epoch': epoch, }
+        print(f"\ntrain_stats: {train_stats}\n")
 
         if args.output_dir and misc.is_main_process():
             if log_writer is not None:
@@ -237,11 +244,59 @@ def main(args):
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
+    return stats_list
 
-
-if __name__ == '__main__':
+def pre_train(args_dict):
     args = get_args_parser()
     args = args.parse_args()
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    main(args)
+    
+    data_loader_train = data_process(args)
+    model, model_without_ddp, optimizer, device = model_process(args, data_loader_train)
+    train_process(args, data_loader_train, model, model_without_ddp, optimizer, device)
+
+
+def step_data(args_dict):
+    args = get_args_parser()
+    args = args.parse_args()
+    
+    args.steps = args_dict['epochs']
+    args.warmup_epochs = args_dict['warmup_epochs']
+    args.batch_size = args_dict['batch_size']
+    args.blr = args_dict['learning_rate']
+    args.mask_ratio = args_dict['mask_ratio']
+    args.weight_decay = args_dict['weight_decay']
+    args.seed = args_dict['seed']
+    args.data_path = f"./YaTC/data/{args_dict['dataset']}_MFR"
+    
+    if args.output_dir:
+        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    
+    try:
+        dataset_train, data_loader_train = data_process(args)
+        return "success", args, dataset_train, data_loader_train
+    except Exception as e:
+        print(e)
+        return "error", None, None
+
+def step_model(args, data_loader_train):
+    time.sleep(3)
+    try:
+        model, model_without_ddp, optimizer, device = model_process(args, data_loader_train)
+        return "success", model, model_without_ddp, optimizer, device
+    except Exception as e:
+        print(e)
+        return "error",  None, None,  None, None
+
+def step_train(args, data_loader_train, model, model_without_ddp, optimizer, device):
+    try:
+        stats_list = train_process(args, data_loader_train, model, model_without_ddp, optimizer, device)
+        return "success", stats_list
+    except Exception as e:
+        print(e)
+        return "error", None
+
+
+if __name__ == '__main__':
+    pre_train(None)
