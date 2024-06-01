@@ -11,7 +11,7 @@
       </select>
       <button @click="searchData" class="search-button">搜索</button>
     </div>
-    <div class="dataset-table-container">
+    <div class="dataset-table-container" @scroll="handleScroll">
       <table class="dataset-table">
         <thead>
           <tr>
@@ -22,15 +22,11 @@
             <th>DestPort</th>
             <th>Protocol</th>
             <th>ApplicationName</th>
-            <!-- <th>Version</th>
-            <th>ImageFeature</th>
-            <th>ThFeature</th>
-            <th>Feature</th> -->
             <th>Label</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="data in dataset" :key="data.id">
+          <tr v-for="data in sortedDataset" :key="data.id">
             <td>{{ data.id }}</td>
             <td>{{ data.src_ip }}</td>
             <td>{{ data.dst_ip }}</td>
@@ -38,21 +34,18 @@
             <td>{{ data.dst_port }}</td>
             <td>{{ data.protocol }}</td>
             <td>{{ data.application_name }}</td>
-            <!-- <td>{{ data.version }}</td>
-            <td><img :src="data.imageFeature" alt="Image Feature" class="image-feature" /></td>
-            <td><img :src="data.thFeature" alt="Th Feature" class="th-feature" /></td>
-            <td>{{ data.feature }}</td> -->
             <td :class="{'label-malicious': data.label === 'Benign', 'label-normal': data.label === 'Malware'}">{{ data.label }}</td>
           </tr>
         </tbody>
       </table>
+      <button @click="loadMore" v-if="hasMoreData" class="load-more-button">查看更多数据</button>
     </div>
     <div v-if="showModal" class="modal">
       <div class="modal-content">
         <span @click="closeModal" class="close">&times;</span>
         <h2>添加流量数据</h2>
         <div class="modal-body">
-          <input type="file" @change="handleFileUpload" />
+          <input type="file" @change="handleFileUpload" accept=".pcap" />
           <select v-model="selectedFlag">
             <option value="" disabled>选择包类型</option>
             <option value="benign">Benign</option>
@@ -74,29 +67,61 @@ export default {
     return {
       search: '',
       filter: '',
-      dataset: [
-      ],
+      dataset: [],
+      page: 1,
+      hasMoreData: true,
       showModal: false,
       selectedFile: null,
       selectedFlag: ''
     };
   },
+  computed: {
+    sortedDataset() {
+      return this.dataset.sort((a, b) => b.id - a.id);
+    }
+  },
   methods: {
+    async fetchDataset(page = 1) {
+      try {
+        const response = await axios.get(`http://127.0.0.1:5000/get_dataset?page=${page}`);
+        const newData = response.data;
+        if (newData.length < 100) {
+          this.hasMoreData = false;
+        }
+        if (page === 1) {
+          this.dataset = newData;
+        } else {
+          this.dataset = this.dataset.concat(newData);
+        }
+        this.page = page;
+        console.log('数据集获取成功:', newData);
+      } catch (error) {
+        console.error('数据集获取失败:', error);
+      }
+    },
     addData() {
       this.showModal = true;
     },
     deleteData() {
       console.log('删除数据');
-      // 触发删除数据的逻辑
     },
     searchData() {
       console.log('搜索数据');
-      // 触发搜索数据的逻辑
     },
     handleFileUpload(event) {
-      this.selectedFile = event.target.files[0];
+      const selectedFile = event.target.files[0];
+      if (!selectedFile) {
+        return;
+      }
+      // 检查文件类型是否为 pcap
+      if (selectedFile.type !== 'application/vnd.tcpdump.pcap' && !selectedFile.name.endsWith('.pcap')) {
+        alert('请上传 pcap 文件');
+        event.target.value = ''; // 清空文件输入
+        return;
+      }
+      // 保存文件到 selectedFile 状态
+      this.selectedFile = selectedFile;
       console.log('文件上传:', this.selectedFile);
-      // 处理文件上传
     },
     async uploadFile() {
       if (!this.selectedFile) {
@@ -118,8 +143,8 @@ export default {
           }
         });
         console.log('文件上传成功:', response.data);
-        this.dataset = this.dataset.concat(response.data);
         alert('文件上传成功');
+        this.fetchDataset(1);  // 上传成功后重置并刷新数据集
         this.closeModal();
       } catch (error) {
         console.error('文件上传失败:', error);
@@ -130,7 +155,19 @@ export default {
       this.showModal = false;
       this.selectedFile = null;
       this.selectedFlag = '';
+    },
+    handleScroll(event) {
+      const bottom = event.target.scrollHeight - event.target.scrollTop === event.target.clientHeight;
+      if (bottom && this.hasMoreData) {
+        this.loadMore();
+      }
+    },
+    loadMore() {
+      this.fetchDataset(this.page + 1);
     }
+  },
+  mounted() {
+    this.fetchDataset();
   }
 };
 </script>
@@ -257,5 +294,20 @@ th, td {
   border: none;
   border-radius: 5px;
   cursor: pointer;
+}
+
+.load-more-button {
+  margin-top: auto; /* 将按钮推到底部 */
+  padding: 10px 20px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.load-more-button:hover {
+  background-color: #0d8aed;
 }
 </style>
