@@ -121,10 +121,32 @@
           <pre>{{ optimizer }}</pre>
         </div>
         <div v-else-if="curStep == 3 && start">
+          <VaDataTable :items="token_list" :columns="tokenColumns">
+            <template #cell(id)="{ value }">
+              <VaChip size="small">{{ value }}</VaChip>
+            </template>
+            <template #cell(ids_restore)="{ rowData }">
+              <div style="white-space: initial; overflow-x: auto">{{ rowData.ids_restore }}</div>
+            </template>
+            <template #cell(latent)="{ rowData }">
+              <div style="white-space: initial; overflow-x: auto">{{ rowData.latent }}</div>
+            </template>
+            <template #cell(mask)="{ rowData }">
+              <div style="white-space: initial; overflow-x: auto;">{{ rowData.mask }}</div>
+            </template>
+            <template #cell(pred)="{ rowData }">
+              <div style="white-space: initial; overflow-x: auto;">{{ rowData.pred }}</div>
+            </template>
+          </VaDataTable>
         </div>
-        <div v-else-if="curStep == 4 && start">
+        <div v-else-if="curStep == 4 && start" class="dual-chart-container">
           <!-- <div :id="selectedStep[curStep].chartId" class="chart" v-if="selectedStep.chartId"></div> -->
-          <LossAndLr></LossAndLr>
+          <div class="chart-wrapper">
+            <Loss></Loss>
+          </div>
+          <div class="chart-wrapper">
+            <Lr></Lr>
+          </div>
         </div>
       </div>
     </div>
@@ -134,12 +156,14 @@
 <script>
 import * as echarts from 'echarts';
 import axios from 'axios';
-import LossAndLr from '../../components/LossAndLr.vue';
+import Loss from '../../components/Loss.vue';
+import Lr from '../../components/Lr.vue';
 import ModelTree from '../../components/ModelTree.vue';
+import tokenData from '../../data/data.json';
 
 export default {
   components: { 
-    LossAndLr, ModelTree
+    Loss, Lr, ModelTree
   },
   name: 'ModelPage',
   data() {
@@ -345,7 +369,15 @@ export default {
       { key: "org", label: "原MFR" },
       { key: "trans", label: "处理后的MFR" },
       { key: "feature", label: "张量特征" },
-    ]
+    ];
+    const token_list = [];
+    const tokenColumns =[
+      { key: "id", label: "ID" },
+      { key: "ids_restore", label: "恢复顺序"},
+      { key: "latent", label: "潜在特征"},
+      { key: "mask", label: "掩码"},
+      { key: "pred", label: "解码预测"},
+    ];
     return {
       form: {
         epochs: 10,
@@ -389,6 +421,8 @@ export default {
       mfrs_feature: [],
       mfrs,
       mfrsColumns,
+      token_list,
+      tokenColumns,
       model: "",
       optimizer: "",
       statsList: Object(),
@@ -414,6 +448,10 @@ export default {
       try {
         this.updateArgsList();
         this.selectStep(this.trainingSteps[0], 0);
+
+        // FIXME:
+        this.updateTokenList();
+
         this.stepOne();
       } catch (error) { console.error('第零步失败', error); }
     },
@@ -555,7 +593,22 @@ export default {
         };
         this.mfrs.push(newMfr);
       }
-    }
+    },
+    // FIXME:
+    updateTokenList() {
+      // console.log("tokenData: ", tokenData)
+      for (let i = 0; i < tokenData.data.token_list.length; i++) {
+        const newToken = {
+          id: i+1,
+          ids_restore: tokenData.data.token_list[i].ids_restore,
+          latent: tokenData.data.token_list[i].latent,
+          mask: tokenData.data.token_list[i].mask,
+          pred: tokenData.data.token_list[i].pred
+        };
+        // console.log("newToken: ", newToken);
+        this.token_list.push(newToken);
+      }
+    },
   }
 };
 </script>
@@ -772,5 +825,14 @@ pre {
   font-weight: bold;
   white-space: pre-wrap;
   padding-left: 20%;
+}
+
+.dual-chart-container {
+  display: flex; /* 使用 flex 布局 */
+}
+
+.chart-wrapper {
+  flex: 1; /* 让每个图表容器平分父容器的宽度 */
+  margin-right: 10px; /* 可选：设置图表之间的间距 */
 }
 </style>
