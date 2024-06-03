@@ -238,6 +238,7 @@ class MaskedAutoencoder(nn.Module):
 
         # masking: length -> length * mask_ratio
         x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        print(x.size())
 
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
@@ -299,11 +300,16 @@ class MaskedAutoencoder(nn.Module):
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
         pred = self.forward_decoder(latent, ids_restore)
         loss = self.forward_loss(imgs, pred, mask)
-        # loss.size() => torch.Size([])
-        # pred.size() => torch.Size([batch_size, 400, 4])
-        # mask.size() => torch.Size([batch_size, 400])
 
-        return loss, pred, mask
+        # latent.size() => torch.Size([batch_size, 40, 192])
+        # ids_restore.size() => torch.Size([batch_size, 400])
+        # mask.size() => torch.Size([batch_size, 400])
+        # pred.size() => torch.Size([batch_size, 400, 4])
+
+        # return loss, pred, mask
+        # 潜在表示、掩码、恢复顺序、解码预测
+        return latent, mask, ids_restore, pred, loss
+        
 
 
 # for pre-training

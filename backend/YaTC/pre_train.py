@@ -219,10 +219,12 @@ def train_process(args, data_loader_train, model, model_without_ddp, optimizer, 
     print(f"Start training for {args.steps} steps")
     start_time = time.time()
     stats_list = []
+    token_list = []
+    
     for epoch in range(0, epochs):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
-        train_stats = pretrain_one_epoch(
+        latent, mask, ids_restore, pred, train_stats = pretrain_one_epoch(
             model, data_loader_train,
             optimizer, device, epoch, epochs, loss_scaler,
             log_writer=log_writer,
@@ -230,6 +232,12 @@ def train_process(args, data_loader_train, model, model_without_ddp, optimizer, 
             args=args
         )
         stats_list.append(train_stats)
+        token_list.append({
+            "latent": str(latent), 
+            "mask": str(mask), 
+            "ids_restore": str(ids_restore),
+            "pred": str(pred),
+        })
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      'epoch': epoch, }
@@ -244,7 +252,7 @@ def train_process(args, data_loader_train, model, model_without_ddp, optimizer, 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
-    return stats_list
+    return stats_list, token_list
 
 def pre_train(args_dict):
     args = get_args_parser()
@@ -291,8 +299,8 @@ def step_model(args, data_loader_train):
 
 def step_train(args, data_loader_train, model, model_without_ddp, optimizer, device):
     try:
-        stats_list = train_process(args, data_loader_train, model, model_without_ddp, optimizer, device)
-        return "success", stats_list
+        stats_list, token_list = train_process(args, data_loader_train, model, model_without_ddp, optimizer, device)
+        return "success", stats_list, token_list
     except Exception as e:
         print(e)
         return "error", None

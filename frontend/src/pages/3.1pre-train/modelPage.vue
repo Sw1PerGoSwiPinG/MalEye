@@ -9,11 +9,11 @@
         <form @submit.prevent="submitForm">
           <!-- 表单输入项 -->
           <div class="form-group" v-for="input in formInputs" :key="input.label">
-            <label :for="input.model">{{ input.label }}</label>
+            <label :for="input.model" style="font-weight: bold; color: #154ec1;">{{ input.label }}</label>
             <input v-model="form[input.model]" :type="input.type" :step="input.step || '1'" />
           </div>
           <div class="form-group">
-            <label>请选择MFR数据集</label>
+            <label style="font-weight: bold; color: #154ec1;">请选择MFR数据集</label>
             <select v-model="form.dataset">
               <option value="UbuntuTraffic">UbuntuTraffic</option>
               <option value="ISCXVPN2016">ISCXVPN2016</option>
@@ -37,12 +37,11 @@
       </div>
       <div class="gauge-container">
         <iframe class="pdf" src="../../MAE.pdf"></iframe>
-        <!-- <MAEpdf></MAEpdf> -->
       </div>
-      <div class="info_container">
-        <VaDataTable :items="argsList" :columns="columns" >
+      <div class="info-container">
+        <VaDataTable :items="argsHelp" :columns="columns" >
           <template #cell(var)="{ value }">
-            <strong>{{ value }}</strong>
+            <strong style="color: #154ec1;">{{ value }}</strong>
           </template>
           <template #cell(info)="{ row }">
             <VaButton icon="info" preset="plainOpacity" @click="row.toggleRowDetails()" ></VaButton>
@@ -57,36 +56,75 @@
       <div class="training-steps-container">
         <div style="display: flex;">
           <VaIcon name="account_tree" style="font-size: 30px; margin-right: 2%; color: #158de3"/>
-          <div style="font-size: x-large; font-weight: bold; margin-bottom: 20px">训练流程</div>
+          <div style="font-size: x-large; font-weight: bold; margin-bottom: 10%">训练流程</div>
         </div>
         <ul>
-          <li class="step" v-for="(step, index) in trainingSteps" :key="index" @click="selectStep(step, index)">
+          <li class="step" v-for="(step, index) in trainingSteps" :key="index" @click="showStep(step, index)" 
+              :style="{backgroundColor: isFinished(index) ? '#228200' : '#e6e9ef', color: isFinished(index) ? 'white' : 'black'}">
+            <VaIcon name="check_circle" :style="{marginRight: '5%', color: isFinished(index) ? 'white' : 'black'}"/>
             {{ step.name }}
           </li>
         </ul>
       </div>
       <div class="chart-display-container">
-        <div style="font-size: large; font-weight: bold;">{{ selectedStep.name }}</div>
-        <div :id="selectedStep.chartId" class="chart" v-if="selectedStep.chartId"></div>
-        <div v-else>选择一个流程以显示详细信息。</div>
-        <div v-if="curStep == 1" style="display: flex; flex-direction: column;">
-          <div class="mfr-container">
-            <div v-for="mfr in mfrs_org" :key="mfr.id">
-              <img :src="mfr.src" alt="Image" style="margin-right: 10px">
-            </div>
-          </div>
-          <div v-if="mfrs_org.length != 0" class="transform">👇经过Torchvision.Transform过程👇</div>
-          <div class="mfr-container">
-            <div v-for="mfr in mfrs_trans" :key="mfr.id">
-              <img :src="mfr.src" alt="Image" style="margin-right: 10px">
-            </div>
+        <div style="font-size: large; font-weight: bold; margin-bottom: 5%;">{{ curStepName }}</div>
+        <h2 v-if="curStep == -1" style="text-align: center; margin-top: 10%; font-size: x-large; font-weight: bold;">
+          点击训练按钮，开始一次训练🤗
+        </h2>
+        <div v-else-if="curStep == 0 && start" style="text-align: center">
+          <div class="argsTable">
+            <VaDataTable :items="argsList" :columns="columnsToPost" >
+              <template #header(var)="{ label }">
+                <VaChip size="small">{{ label }}</VaChip>
+              </template>
+              <template #header(name)="{ label }">
+                <VaChip size="small">{{ label }}</VaChip>
+              </template>
+              <template #header(type)="{ label }">
+                <VaChip size="small">{{ label }}</VaChip>
+              </template>
+              <template #header(value)="{ label }">
+                <VaChip size="small">{{ label }}</VaChip>
+              </template>
+              <template #header(default)="{ label }">
+                <VaChip size="small">{{ label }}</VaChip>
+              </template>
+              <template #header(description)="{ label }">
+                <VaChip size="small">{{ label }}</VaChip>
+              </template>
+            </VaDataTable>
           </div>
         </div>
-        <div v-else-if="curStep == 2">
+        <div v-else-if="curStep == 1 && start">
+          <VaDataTable :items="mfrs" :columns="mfrsColumns">
+            <template #cell(id)="{ value }">
+              <VaChip size="small">{{ value }}</VaChip>
+            </template>
+            <template #cell(org)="{ rowData }">
+              <div>
+                <img :src="rowData.org" alt="Image" style="margin: 0px 10px">
+              </div>
+            </template>
+            <template #cell(trans)="{ rowData }">
+              <div>
+                <img :src="rowData.trans" alt="Image" style="margin: 0px 10px">
+              </div>
+            </template>
+            <template #cell(feature)="{ rowData }">
+              <div style="white-space: initial; overflow-x: auto;">{{ rowData.feature }}</div>
+            </template>
+          </VaDataTable>
+        </div>
+        <div v-else-if="curStep == 2 && start">
+          <ModelTree></ModelTree>
           <pre>{{ model }}</pre>
           <pre>{{ optimizer }}</pre>
         </div>
-        <div v-else-if="curStep == 3">
+        <div v-else-if="curStep == 3 && start">
+        </div>
+        <div v-else-if="curStep == 4 && start">
+          <!-- <div :id="selectedStep[curStep].chartId" class="chart" v-if="selectedStep.chartId"></div> -->
+          <LossAndLr></LossAndLr>
         </div>
       </div>
     </div>
@@ -96,129 +134,196 @@
 <script>
 import * as echarts from 'echarts';
 import axios from 'axios';
-
-import MAEpdf from  '../../components/MAEpdf.vue'
+import LossAndLr from '../../components/LossAndLr.vue';
+import ModelTree from '../../components/ModelTree.vue';
 
 export default {
   components: { 
-    MAEpdf,
+    LossAndLr, ModelTree
   },
   name: 'ModelPage',
   data() {
+    const argsHelp = [
+      {
+          "var": "batch_size",
+          "name": "批处理大小",
+          "type": "int",
+          "default": 128,
+          "description": "每个GPU的批处理大小",
+      },
+      {
+          "var": "steps",
+          "name": "步骤数",
+          "type": "int",
+          "default": 150000,
+          "description": "预训练的总步骤数，每一步代表一次编码解码过程"
+      },
+      {
+          "var": "model",
+          "name": "模型名称",
+          "type": "str",
+          "default": "MAE_YaTC",
+          "description": "要训练的模型名称，默认为掩码自编码器"
+      },
+      {
+          "var": "input_size",
+          "name": "输入大小",
+          "type": "int",
+          "default": "40*40",
+          "description": "输入的MFR图像样本的大小"
+      },
+      {
+          "var": "mask_ratio",
+          "name": "掩码比例",
+          "type": "float",
+          "default": 0.90,
+          "description": "掩码比例，预训练时对于样本的遮挡比例，一般取较大的值"
+      },
+      {
+          "var": "norm_pix_loss",
+          "name": "归一化像素损失",
+          "type": "bool",
+          "default": false,
+          "description": "使用（每个补丁的）归一化像素作为计算损失的目标"
+      },
+      {
+          "var": "weight_decay",
+          "name": "权重衰减",
+          "type": "float",
+          "default": 0.05,
+          "description": "权重衰减，用于防止模型过拟合（默认：0.05）"
+      },
+      {
+          "var": "blr",
+          "name": "基础学习率",
+          "type": "float",
+          "default": 1e-3,
+          "description": "基础学习率：绝对学习率 = 基础学习率 * 总批处理大小 / 256"
+      },
+      {
+          "var": "warmup_epochs",
+          "name": "预热轮数",
+          "type": "int",
+          "default": 25,
+          "description": "学习率预热阶段所需要的轮数"
+      },
+      {
+          "var": "data_path",
+          "name": "数据集路径",
+          "type": "str",
+          "default": "ISCXVPN2016",
+          "description": "数据集存放的路径"
+      },
+      {
+          "var": "device",
+          "name": "设备",
+          "type": "str",
+          "default": "cuda",
+          "description": "训练/测试使用的设备，默认使用GPU加速"
+      },
+      {
+          "var": "seed",
+          "name": "随机种子",
+          "type": "int",
+          "default": 0,
+          "description": "随机种子，用于初始化模型参数"
+      },
+      {
+          "var": "num_workers",
+          "name": "工作线程数",
+          "type": "int",
+          "default": 10,
+          "description": "工作线程数"
+      },
+      {
+          "var": "pin_mem",
+          "name": "固定内存",
+          "type": "bool",
+          "default": true,
+          "description": "在DataLoader中固定CPU内存以更有效地传输到GPU（有时）"
+      },
+      {
+          "var": "dist_on_itp",
+          "name": "在ITP上分布",
+          "type": "bool",
+          "default": false,
+          "description": "是否在在ITP上进行分布式训练"
+      },
+      {
+          "var": "dist_url",
+          "name": "分布式URL",
+          "type": "str",
+          "default": "env://",
+          "description": "设置分布式训练的URL"
+      }
+    ];
     const argsList = [
-    {
-        "var": "batch_size",
-        "name": "批处理大小",
-        "type": "int",
-        "default": 128,
-        "description": "每个GPU的批处理大小",
-    },
-    {
+      {
         "var": "steps",
         "name": "步骤数",
         "type": "int",
-        "default": 150000,
+        "value": 0,
+        "default": 100,
         "description": "预训练的总步骤数，每一步代表一次编码解码过程"
-    },
-    {
-        "var": "model",
-        "name": "模型名称",
-        "type": "str",
-        "default": "MAE_YaTC",
-        "description": "要训练的模型名称，默认为掩码自编码器"
-    },
-    {
-        "var": "input_size",
-        "name": "输入大小",
+      },
+      {
+          "var": "warmup",
+          "name": "预热轮数",
+          "type": "int",
+          "value": 0,
+          "default": 25,
+          "description": "学习率预热阶段所需要的轮数"
+      },
+      {
+        "var": "batch_size",
+        "name": "批处理大小",
         "type": "int",
-        "default": "40*40",
-        "description": "输入的MFR图像样本的大小"
-    },
-    {
-        "var": "mask_ratio",
-        "name": "掩码比例",
-        "type": "float",
-        "default": 0.90,
-        "description": "掩码比例，预训练时对于样本的遮挡比例，一般取较大的值"
-    },
-    {
-        "var": "norm_pix_loss",
-        "name": "归一化像素损失",
-        "type": "bool",
-        "default": false,
-        "description": "使用（每个补丁的）归一化像素作为计算损失的目标"
-    },
-    {
-        "var": "weight_decay",
-        "name": "权重衰减",
-        "type": "float",
-        "default": 0.05,
-        "description": "权重衰减，用于防止模型过拟合（默认：0.05）"
-    },
-    {
-        "var": "blr",
-        "name": "基础学习率",
-        "type": "float",
-        "default": 1e-3,
-        "description": "基础学习率：绝对学习率 = 基础学习率 * 总批处理大小 / 256"
-    },
-    {
-        "var": "warmup_epochs",
-        "name": "预热轮数",
-        "type": "int",
-        "default": 25,
-        "description": "学习率预热阶段所需要的轮数"
-    },
-    {
-        "var": "data_path",
-        "name": "数据集路径",
-        "type": "str",
-        "default": "ISCXVPN2016",
-        "description": "数据集存放的路径"
-    },
-    {
-        "var": "device",
-        "name": "设备",
-        "type": "str",
-        "default": "cuda",
-        "description": "训练/测试使用的设备，默认使用GPU加速"
-    },
-    {
-        "var": "seed",
-        "name": "随机种子",
-        "type": "int",
-        "default": 0,
-        "description": "随机种子，用于初始化模型参数"
-    },
-    {
-        "var": "num_workers",
-        "name": "工作线程数",
-        "type": "int",
-        "default": 10,
-        "description": "工作线程数"
-    },
-    {
-        "var": "pin_mem",
-        "name": "固定内存",
-        "type": "bool",
-        "default": true,
-        "description": "在DataLoader中固定CPU内存以更有效地传输到GPU（有时）"
-    },
-    {
-        "var": "dist_on_itp",
-        "name": "在ITP上分布",
-        "type": "bool",
-        "default": false,
-        "description": "是否在在ITP上进行分布式训练"
-    },
-    {
-        "var": "dist_url",
-        "name": "分布式URL",
-        "type": "str",
-        "default": "env://",
-        "description": "设置分布式训练的URL"
-    }
+        "value": 0,
+        "default": 128,
+        "description": "每个GPU的批处理大小",
+      },
+      {
+          "var": "blr",
+          "name": "基础学习率",
+          "type": "float",
+          "value": 0.0,
+          "default": 1e-3,
+          "description": "绝对学习率 = 基础学习率 * 总批处理大小 / 256"
+      },
+      {
+          "var": "mask_ratio",
+          "name": "掩码比例",
+          "type": "float",
+          "value": 0.0,
+          "default": 0.90,
+          "description": "掩码比例，即对于样本的遮挡比例，一般取较大的值"
+      },
+      {
+          "var": "weight_decay",
+          "name": "权重衰减",
+          "type": "float",
+          "value": 0.0,
+          "default": 0.05,
+          "description": "权重衰减，用于防止模型过拟合（默认：0.05）"
+      },
+      {
+          "var": "seed",
+          "name": "随机种子",
+          "type": "int",
+          "value": 0,
+          "default": 0,
+          "description": "随机种子，用于初始化模型参数"
+      },
+      {
+          "var": "data_path",
+          "name": "数据集路径",
+          "type": "str",
+          "value": "",
+          "default": "ISCXVPN2016",
+          "description": "数据集，默认为ISCXVPN2016数据集"
+      }
     ];
+    const mfrs = [];
     const columns = [
       { key: "var", label: "参数" },
       { key: "name", label: "名称" },
@@ -226,9 +331,24 @@ export default {
       { key: "default", label: "默认值" },
       { key: "info", label: "含义"},
     ];
+    const columnsToPost = [
+      { key: "var", label: "参数" },
+      { key: "name", label: "名称" },
+      { key: "type", label: "类型" },
+      { key: "value", label: "实际值" },
+      { key: "default", label: "默认值" },
+      { key: "description", label: "含义"},
+    ];
+    const mfrsColumns = [
+      { key: "id", label: "ID" },
+      { key: "label", label: "标签" },
+      { key: "org", label: "原MFR" },
+      { key: "trans", label: "处理后的MFR" },
+      { key: "feature", label: "张量特征" },
+    ]
     return {
       form: {
-        epochs: 100,
+        epochs: 10,
         warmupEpochs: 0,
         batchSize: 64,
         learningRate: 0.001,
@@ -247,26 +367,40 @@ export default {
         { label: '随机数种子', model: 'seed', type: 'number' },
       ],
       trainingSteps: [
-        { name: 'Step 1: 数据预处理', chartId: 'preprocessingChart' },
-        { name: 'Step 2: 模型及优化器', chartId: 'trainingChart' },
-        { name: 'Step 3: 模型训练', chartId: 'evaluationChart' },
-        { name: 'Step 4: 训练结果', chartId: 'tuningChart' },
+        { name: 'Step 1 - 超参数预览', chartId: 'argsChart' },
+        { name: 'Step 2 - 数据预处理', chartId: 'dataChart' },
+        { name: 'Step 3 - 模型及优化器', chartId: 'modelChart' },
+        { name: 'Step 4 - 模型训练', chartId: 'trainingChart' },
+        { name: 'Step 5 - 训练结果', chartId: 'resultChart' },
       ],
+      start: false,
       selectedStep: {},
-      curStep: 0,
-      argsList,
+      finishedSteps: [],
+      curStep: -1,
+      curStepName: "",
+      argsHelp,
       columns,
       // 下面数据是展示训练过程时候用的
+      argsList,
+      columnsToPost,
+      mfrs_label: [],
       mfrs_org: [],
       mfrs_trans: [],
+      mfrs_feature: [],
+      mfrs,
+      mfrsColumns,
       model: "",
       optimizer: "",
-      trainLog: Object(),
+      statsList: Object(),
+      tokenList: Object(),
     };
   },
   methods: {
     startTraining() {
-      this.stepOne(); 
+      this.start = true;
+      this.curStep = 0;
+      this.curStepName = this.trainingSteps[0].name;
+      this.stepZero(); 
     },
     stopTraining() {
       console.log('停止训练');
@@ -276,14 +410,21 @@ export default {
       console.log('提交表单', this.form);
       // 处理表单提交
     },
+    async stepZero() {
+      try {
+        this.updateArgsList();
+        this.selectStep(this.trainingSteps[0], 0);
+        this.stepOne();
+      } catch (error) { console.error('第零步失败', error); }
+    },
     async stepOne() {
       try {
         const response = await axios.post('http://localhost:5000/pre-train-step1', this.form);
         if (response.data.message == "success") {
           console.log('第一步：', response.data);
-          const data = response.data.data
+          const data = response.data.data;
+          // 接收数据
           if (Array.isArray(data.mfrs_org) && Array.isArray(data.mfrs_trans)) {
-            console.log("here")
             this.mfrs_org = data.mfrs_org.map((imageStr, index) => {
               return {
                 id: Math.random(),
@@ -297,8 +438,11 @@ export default {
               };
             });
           }
-          this.curStep = 1;
-          this.selectStep(this.trainingSteps[0]);
+          this.mfrs_label = data.mfrs_label;
+          this.mfrs_feature = data.mfrs_feature;
+          this.updateMfrs();
+
+          this.selectStep(this.trainingSteps[1], 1);
           this.stepTwo();
         } else {
           alert(`在第一步时训练出错`);
@@ -313,9 +457,8 @@ export default {
           console.log('第二步：', response.data);
           this.model = response.data.data.model;
           this.optimizer = response.data.data.optimizer;
-          this.curStep = 2;
-          this.selectStep(this.trainingSteps[1]);
-          // this.stepThree();
+          this.selectStep(this.trainingSteps[2], 2);
+          this.stepThree();
         } else {
           alert(`在第二步时训练出错`);
           return;
@@ -327,21 +470,25 @@ export default {
         const response = await axios.get('http://localhost:5000/pre-train-step3');
         if (response.data.message == "success") {
           console.log('第三步：', response.data);
+          this.statsList = response.data.data.stats_list;
+          this.tokenList = response.data.data.token_list;
+          this.selectStep(this.trainingSteps[3], 3);
+          this.stepFour();
         } else {
           alert(`在第三步时训练出错`);
           return;
         }
       } catch (error) { console.error('第三步失败', error); }
-      this.curStep = 3;
-      this.selectStep(this.trainingSteps[2]);
+      
+    },
+    stepFour() {
+      this.initChart(this.trainingSteps[4].chartId);
+      this.selectStep(this.trainingSteps[4], 4);
       alert("完成整个训练过程")
     },
-    // stepFour() {
-
-    // },
     resetForm() {
       this.form = {
-        epochs: 100,
+        epochs: 10,
         warmupEpochs: 0,
         batchSize: 64,
         learningRate: 0.001,
@@ -351,21 +498,64 @@ export default {
         dataset: "UbuntuTraffic"
       };
     },
+    showStep(step, index) {
+      this.curStep = index;
+      this.curStepName = step.name;
+    },
     selectStep(step, index) {
       this.selectedStep = step;
-      this.initChart(step.chartId);
-      this.curStep = index + 1;
+      // this.initChart(step.chartId);
+      if (!this.finishedSteps.includes(index)) {
+        this.finishedSteps.push(index);
+      }
+    },
+    isFinished(index) {
+      return this.finishedSteps.includes(index);
     },
     initChart(chartId) {
-      if (!chartId) return; // 如果没有chartId则直接返回
+      if (!chartId) return;
       const chartDom = document.getElementById(chartId);
-      if (!chartDom) return; // 如果DOM元素不存在也返回
+      if (!chartDom) return;
       const myChart = echarts.init(chartDom);
       const option = {
         // 根据图表类型设置不同的option配置
       };
       myChart.setOption(option);
     },
+    sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    },
+    updateArgsList() {
+      const formMapping = {
+        steps: 'epochs',
+        warmup_epochs: 'warmupEpochs',
+        batch_size: 'batchSize',
+        blr: 'learningRate',
+        mask_ratio: 'maskRatio',
+        weight_decay: 'weightDecay',
+        seed: 'seed',
+        data_path: 'dataset'
+      };
+
+      this.argsList.forEach(arg => {
+        const formKey = formMapping[arg.var];
+        if (formKey && this.form.hasOwnProperty(formKey)) {
+          arg.value = this.form[formKey];
+        }
+      });
+    },
+    updateMfrs() {
+      for (let i = 0; i < this.mfrs_label.length; i++) {
+        const newMfr = {
+          id: i+1,
+          label: this.mfrs_label[i],
+          org: this.mfrs_org[i].src,
+          trans: this.mfrs_trans[i].src,
+          feature: this.mfrs_feature[i]
+        };
+        this.mfrs.push(newMfr);
+      }
+    }
   }
 };
 </script>
@@ -384,7 +574,7 @@ export default {
 
 .gauge-container {
   width: 36%;
-  background-color: #f0f4f8;
+  background-color: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -426,7 +616,7 @@ export default {
 
 .form-container {
   width: 20%;
-  background-color: #f0f4f8;
+  background-color: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -467,9 +657,9 @@ export default {
   display: none;
 }
 
-.info_container {
+.info-container {
   width: 40%;
-  background-color: #f0f4f8;
+  background-color: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -488,6 +678,11 @@ export default {
 .bottom-section {
   display: flex;
   justify-content: space-around;
+  background-color: white;
+  padding: 20px;
+  padding-left: 10px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 /* .step {
@@ -495,18 +690,20 @@ export default {
 } */
 
 .training-steps-container {
-  width: 32%;
+  width: 25%;
+  border-right: 1.5px solid  #154ec1;
+  border-top: none;
+  border-bottom: none; 
+  border-left: none;
 }
 .chart-display-container {
-  width: 65%;
+  width: 72%;
 }
 
 .training-steps-container,
 .chart-display-container {
-  background-color: #f0f4f8; /* 浅蓝色背景 */
   padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
 }
 
 .training-steps-container ul {
@@ -517,22 +714,26 @@ export default {
 
 .training-steps-container li {
   cursor: pointer;
-  padding: 10px;
+  font-size: medium;
+  width: 90%;
+  padding: 10px 30px;
   border-radius: 20px;
-  margin-bottom: 10px;
-  background: linear-gradient(145deg, #e6e9ef, #ffffff);
+  margin-bottom: 25px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-}
-
-.training-steps-container li:hover {
-  background: #d2e1ec; /* 鼠标悬停时的背景色 */
-  color: #333;
 }
 
 .chart {
   width: 100%;
   height: 300px; /* 根据需要调整高度 */
+}
+
+.argsTable {
+  width: 100%;
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .mfr-container {
@@ -562,11 +763,13 @@ h2 {
 .tip-bar {
   text-align: center; 
   padding: 10px 20px; 
-  background-color: white; 
+  color: white;
+  background-color: #154ec1;
   border-radius: 20px;
 }
 
 pre {
+  font-weight: bold;
   white-space: pre-wrap;
   padding-left: 20%;
 }

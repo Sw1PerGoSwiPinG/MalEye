@@ -50,8 +50,9 @@ def pretrain_one_epoch(model: torch.nn.Module,
 
         # 前向传播 计算损失
         with torch.cuda.amp.autocast():
-            loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
-
+            # loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
+            latent, mask, ids_restore, pred, loss = model(samples, mask_ratio=args.mask_ratio)
+        
         loss_value = loss.item()
 
         if not math.isfinite(loss_value):
@@ -89,7 +90,7 @@ def pretrain_one_epoch(model: torch.nn.Module,
     # 同步进程之间的统计信息
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
-    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+    return latent, mask, ids_restore, pred, {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,

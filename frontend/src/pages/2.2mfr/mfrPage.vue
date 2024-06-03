@@ -254,6 +254,20 @@ export default {
   margin-right: 10px;
 }
 
+.search-input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 200px;
+}
+
+.filter-select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+
 .search-button {
   padding: 10px 20px;
   background-color: #2196f3;
@@ -305,8 +319,8 @@ export default {
 }
 
 .image-feature {
-  width: 100px;
-  height: 100px;
+  width: 50px;
+  height: 50px;
 }
 
 .modal {
@@ -367,10 +381,5 @@ export default {
 .image-container {
   display: inline-block;
   margin: 5px;
-}
-
-.image-feature {
-  width: 100px;
-  height: 100px;
 }
 </style>

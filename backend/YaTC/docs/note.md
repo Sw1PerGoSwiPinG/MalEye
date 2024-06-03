@@ -189,7 +189,7 @@ Parameter Group 1
 **补充**
 
 - 原文讨论部分
-- 模型本身
+- 模型代码（timm）
 - 将transformer放到vit下面
 - 迁移学习
 - Adamw和权重衰减

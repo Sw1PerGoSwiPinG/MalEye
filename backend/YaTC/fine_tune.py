@@ -31,6 +31,48 @@ import YaTC.models_YaTC as models_YaTC
 
 from YaTC.engine import train_one_epoch, evaluate
 
+"""
+参数说明：
+    - batch_size：每个 GPU 的批量大小。
+    - epochs：总训练轮数。
+    - accum_iter：梯度累积步数，用于增加有效批量大小。
+    - model：要训练的模型名称。
+    - input_size：输入图像的尺寸。
+    - drop_path：Dropout路径的比例。
+    - clip_grad：剪裁梯度的范数（默认为None，表示不进行剪裁）。
+    - weight_decay：权重衰减系数。
+    - lr和`blr`：学习率设置。
+    - layer_decay：来自ELECTRA/BEiT的逐层学习率衰减。
+    - min_lr：循环调度器达到0时的最低学习率。
+    - warmup_epochs：学习率预热的轮数。
+    - color_jitter：颜色抖动因子（仅在不使用Auto/RandAug时启用）。
+    - aa：使用的AutoAugment策略。
+    - smoothing：标签平滑（默认为0.1）。
+    - reprob：随机擦除概率。
+    - remode：随机擦除模式。
+    - recount：随机擦除计数。
+    - resplit：是否对第一个（原始）增强数据集进行随机擦除。
+    - mixup：mixup的系数，如果大于0则启用mixup。
+    - cutmix：cutmix的系数，如果大于0则启用cutmix。
+    - cutmix_minmax：cutmix的最小/最大比例，如果设置则覆盖alpha并启用cutmix。
+    - mixup_prob：在启用mixup或cutmix时执行mixup或cutmix的概率。
+    - mixup_switch_prob：在同时启用mixup和cutmix时切换到cutmix的概率。
+    - mixup_mode：如何应用mixup/cutmix参数，可以是"batch"、"pair"或"elem"。
+    - finetune：从检查点路径进行微调。
+    - data_path：数据集路径。
+    - nb_classes：分类类型的数量。
+    - output_dir：保存模型和结果的路径，如果为空则不保存。
+    - log_dir：TensorBoard日志的路径。
+    - device：用于训练/测试的设备。
+    - seed：随机种子。
+    - resume：从检查点路径恢复训练。
+    - start_epoch：起始轮数。
+    - eval：仅执行评估。
+    - dist_eval：启用分布式评估（建议在训练过程中使用以加快监控速度）。
+    - num_workers：数据加载器的工作进程数。
+    - pin_mem：在DataLoader中固定CPU内存以实现更高效的（有时）传输到GPU。
+    - world_size、`local_rank`、`dist_on_itp`、`dist_url`：分布式训练参数。
+"""
 
 def get_args_parser():
     parser = argparse.ArgumentParser('YaTC fine-tuning for traffic classification', add_help=False)
@@ -175,7 +217,8 @@ def main(args):
 
     labels = dataset_val.classes
 
-    if True:  # args.distributed:
+    # if True:  # args.distributed:
+    if args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
         sampler_train = torch.utils.data.DistributedSampler(
@@ -330,6 +373,9 @@ def main(args):
                      **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
+
+        with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
+            f.write(json.dumps(log_stats) + "\n")
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
