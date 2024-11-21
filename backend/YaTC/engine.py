@@ -97,7 +97,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, loss_scaler, max_norm: float = 0,
                     mixup_fn: Optional[Mixup] = None, log_writer=None,
-                    args=None):
+                    model_without_ddp=None,
+                    args=None,
+                    logSocket=None):
     model.train(True)
     metric_logger = misc.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', misc.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -110,6 +112,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
     if log_writer is not None:
         print('log_dir: {}'.format(log_writer.log_dir))
+        logSocket.emit("message", 'log_dir: {}'.format(log_writer.log_dir), namespace='/finetune')
 
     pred_all = []
     target_all = []
@@ -118,7 +121,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         # we use a per iteration (instead of per epoch) lr scheduler
         if data_iter_step % accum_iter == 0:
-            lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
+            lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args.epochs, args)
 
         samples = samples.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
@@ -164,16 +167,21 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             epoch_1000x = int((data_iter_step / len(data_loader) + epoch) * 1000)
             log_writer.add_scalar('loss', loss_value_reduce, epoch_1000x)
             log_writer.add_scalar('lr', max_lr, epoch_1000x)
+        if args.output_dir and (epoch+1) % 100 == 0 and epoch > 0:
+            misc.save_model(
+                args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
+                loss_scaler=loss_scaler, epoch=epoch, name='epoch'+str(epoch))
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
+    logSocket.emit("message", "Averaged stats:", metric_logger, namespace='/finetune')
 
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
 @torch.no_grad()
-def evaluate(data_loader, model, device):
+def evaluate(data_loader, model, device, logSocket):
     criterion = torch.nn.CrossEntropyLoss()
 
     metric_logger = misc.MetricLogger(delimiter="  ")
@@ -221,6 +229,15 @@ def evaluate(data_loader, model, device):
         .format(macro_pre=macro[0], macro_rec=macro[1],
                     macro_f1=macro[2]))
 
+    logSocket.emit("message", 
+                   '* Acc@1 {top1.global_avg:.4f} Acc@5 {top5.global_avg:.4f} loss {losses.global_avg:.4f}'
+                        .format(top1=metric_logger.acc1, top5=metric_logger.acc5, losses=metric_logger.loss), 
+                   namespace='/finetune')
+    logSocket.emit("message", 
+                   '* Pre {macro_pre:.4f} Rec {macro_rec:.4f} F1 {macro_f1:.4f}'
+                        .format(macro_pre=macro[0], macro_rec=macro[1],macro_f1=macro[2]), 
+                    namespace='/finetune')
+    
     test_state = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
     test_state['macro_pre'] = macro[0]
     test_state['macro_rec'] = macro[1]

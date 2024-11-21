@@ -48,19 +48,19 @@
     </div>
     <div class="bottom-section">
       <div class="details-table-container">
-        <h2 class="table-title details-title">会话特征</h2>
+        <h2 class="table-title details-title" style="color: black;">会话特征</h2>
         <table class="details-table">
           <thead>
             <tr>
-              <th>SessionID</th>
-              <th>SessionName</th>
-              <th>SourceIP</th>
-              <th>DestIP</th>
-              <th>SourcePort</th>
-              <th>DestPort</th>
-              <th>Version</th>
-              <th>ImageFeature</th>
-              <th>Feature</th>
+              <th>绘画ID</th>
+              <th>会话名称</th>
+              <th>源IP</th>
+              <th>目的IP</th>
+              <th>源端口</th>
+              <th>目的端口</th>
+              <th>TLS版本</th>
+              <th>恶意概率</th>
+              <!-- <th>Feature</th> -->
             </tr>
           </thead>
           <tbody>
@@ -73,7 +73,7 @@
               <td>{{ detail.destPort }}</td>
               <td>{{ detail.version }}</td>
               <td>{{ detail.imageFeature }}</td>
-              <td>{{ detail.feature }}</td>
+              <!-- <td>{{ detail.feature }}</td> -->
             </tr>
           </tbody>
         </table>
@@ -88,19 +88,31 @@ export default {
   data() {
     return {
       packets: [
-        { id: 1379, name: '2022-11-25_09:47:20_pcap_TCP_189.194.23.241_443_198.168.3.7_443_1' },
-        { id: 1378, name: '2022-11-25_09:47:20_pcap_TCP_189.233.20.243_443_198.168.3.7_443_1' },
+        { id: 51, name: '2022-11-25_09:47:20_pcap_TCP_189.194.23.241_443_198.168.3.7_443_1' },
+        { id: 52, name: '2022-11-25_09:47:20_pcap_TCP_189.233.20.243_443_198.168.3.7_443_1' },
+        { id: 53, name: '2022-11-25_09:47:20_pcap_TCP_189.194.23.241_443_198.168.3.7_443_1' },
+        { id: 54, name: '2022-11-25_09:47:20_pcap_TCP_189.233.20.243_443_198.168.3.7_443_1' },
+        { id: 55, name: '2022-11-25_09:47:20_pcap_TCP_189.194.23.241_443_198.168.3.7_443_1' },
+        { id: 56, name: '2022-11-25_09:47:20_pcap_TCP_189.233.20.243_443_198.168.3.7_443_1' },
         // ...更多数据
       ],
       results: [
-        { sessionId: 1406, label: 'normal', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443 },
-        { sessionId: 1405, label: 'normal', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443 },
+        { sessionId: 1, label: 'normal', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443 },
+        { sessionId: 2, label: 'normal', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443 },
+        { sessionId: 3, label: 'normal', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443 },
+        { sessionId: 4, label: 'normal', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443 },
         // ...更多数据
       ],
       details: [
-        { sessionId: 1406, sessionName: '2022-11-25_09:47:20_pcap_TCP_14', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '特征1', feature: '特征详情' },
-        { sessionId: 1405, sessionName: '2022-11-25_09:47:20_pcap_TCP_14', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '特征2', feature: '特征详情' },
-        // ...更多数据
+        { sessionId: 1, sessionName: '2022-11-25_09:47:20_pcap_TCP_14', sourceIp: '142.251.43.10', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '86.95%'},
+        { sessionId: 2, sessionName: '2022-11-25_09:47:20_pcap_TCP_15', sourceIp: '142.251.43.11', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '75.65%'},
+        { sessionId: 3, sessionName: '2022-11-25_09:47:20_pcap_TCP_16', sourceIp: '142.251.43.12', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '65.13%'},
+        { sessionId: 4, sessionName: '2022-11-25_09:47:20_pcap_TCP_19', sourceIp: '142.251.43.13', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '84.16%'},
+        { sessionId: 5, sessionName: '2022-11-25_09:47:20_pcap_TCP_21', sourceIp: '142.251.43.14', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '65.17%'},
+        { sessionId: 6, sessionName: '2022-11-25_09:47:20_pcap_TCP_25', sourceIp: '142.251.43.15', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '65.59%'},
+        { sessionId: 7, sessionName: '2022-11-25_09:47:20_pcap_TCP_31', sourceIp: '142.251.43.16', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '86.56%'},
+        { sessionId: 8, sessionName: '2022-11-25_09:47:20_pcap_TCP_32', sourceIp: '142.251.43.17', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '19.55%'},
+        { sessionId: 9, sessionName: '2022-11-25_09:47:20_pcap_TCP_33', sourceIp: '142.251.43.18', destIp: '192.168.3.7', sourcePort: 443, destPort: 45214, version: 'TLS 1.2', imageFeature: '22.99%'},
       ]
     };
   },
@@ -137,14 +149,15 @@ export default {
   cursor: pointer;
   color: white;
   font-size: 16px;
+  font-weight: bold;
 }
 
 .start-button {
-  background-color: #4caf50;
+  background-color: #228200;
 }
 
 .pause-button {
-  background-color: #f44336;
+  background-color: #e42222;
 }
 
 .top-section, .bottom-section {
@@ -179,18 +192,19 @@ export default {
   padding: 10px;
   border-radius: 5px;
   color: white;
+  font-weight: bold;;
 }
 
 .packets-title {
-  background-color: #2196f3;
+  background-color: #154ec1;
 }
 
 .results-title {
-  background-color: #4caf50;
+  background-color: #228200;
 }
 
 .details-title {
-  background-color: #ff9800;
+  background-color: #ffd43a;
 }
 
 table {

@@ -101,11 +101,12 @@ def get_args_parser():
     parser.add_argument('--resume', default='',
                         help='resume from checkpoint')
 
-    parser.add_argument('--num_workers', default=10, type=int)
+    parser.add_argument('--num_workers', default=1, type=int)
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
-    parser.set_defaults(pin_mem=True)
+    # parser.set_defaults(pin_mem=True)
+    parser.set_defaults(pin_mem=False)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -303,7 +304,7 @@ def step_train(args, data_loader_train, model, model_without_ddp, optimizer, dev
         return "success", stats_list, token_list
     except Exception as e:
         print(e)
-        return "error", None
+        return "error", None, None
 
 
 if __name__ == '__main__':

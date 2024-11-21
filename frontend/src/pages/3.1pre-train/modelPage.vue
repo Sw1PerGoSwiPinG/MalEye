@@ -23,7 +23,7 @@
             </select>
           </div>
           <div class="gauge-buttons">
-            <VaButton color="info" class="start-button" @click="startTraining" style="height: 30px; padding: 0 0;">
+            <VaButton color="primary" class="start-button" @click="startTraining" style="height: 30px; padding: 0 0;">
               训练
             </VaButton>
             <VaButton color="danger" class="start-button" @click="stopTraining" style="height: 30px; padding: 0 0;">
@@ -117,8 +117,9 @@
         </div>
         <div v-else-if="curStep == 2 && start">
           <ModelTree></ModelTree>
-          <pre>{{ model }}</pre>
-          <pre>{{ optimizer }}</pre>
+          <div>
+            <pre>{{ optimizer }}</pre>
+          </div>
         </div>
         <div v-else-if="curStep == 3 && start">
           <VaDataTable :items="token_list" :columns="tokenColumns">
@@ -140,12 +141,11 @@
           </VaDataTable>
         </div>
         <div v-else-if="curStep == 4 && start" class="dual-chart-container">
-          <!-- <div :id="selectedStep[curStep].chartId" class="chart" v-if="selectedStep.chartId"></div> -->
           <div class="chart-wrapper">
-            <Loss></Loss>
+            <Loss :list="statsList"></Loss>
           </div>
           <div class="chart-wrapper">
-            <Lr></Lr>
+            <Lr :list="statsList"></Lr>
           </div>
         </div>
       </div>
@@ -160,6 +160,9 @@ import Loss from '../../components/Loss.vue';
 import Lr from '../../components/Lr.vue';
 import ModelTree from '../../components/ModelTree.vue';
 import tokenData from '../../data/data.json';
+import { useToast } from 'vuestic-ui'
+
+const { init } = useToast();
 
 export default {
   components: { 
@@ -425,8 +428,8 @@ export default {
       tokenColumns,
       model: "",
       optimizer: "",
-      statsList: Object(),
-      tokenList: Object(),
+      statsList: [],
+      tokenList: [],
     };
   },
   methods: {
@@ -438,20 +441,14 @@ export default {
     },
     stopTraining() {
       console.log('停止训练');
-      // 触发停止训练的逻辑
     },
     submitForm() {
       console.log('提交表单', this.form);
-      // 处理表单提交
     },
     async stepZero() {
       try {
         this.updateArgsList();
         this.selectStep(this.trainingSteps[0], 0);
-
-        // FIXME:
-        this.updateTokenList();
-
         this.stepOne();
       } catch (error) { console.error('第零步失败', error); }
     },
@@ -459,7 +456,7 @@ export default {
       try {
         const response = await axios.post('http://localhost:5000/pre-train-step1', this.form);
         if (response.data.message == "success") {
-          console.log('第一步：', response.data);
+          console.log('第二步：', response.data);
           const data = response.data.data;
           // 接收数据
           if (Array.isArray(data.mfrs_org) && Array.isArray(data.mfrs_trans)) {
@@ -483,46 +480,50 @@ export default {
           this.selectStep(this.trainingSteps[1], 1);
           this.stepTwo();
         } else {
-          alert(`在第一步时训练出错`);
-          return;
-        }
-      } catch (error) { console.error('第一步失败', error); }
-    },
-    async stepTwo() {      
-      try {
-        const response = await axios.get('http://localhost:5000/pre-train-step2');
-        if (response.data.message == "success") {
-          console.log('第二步：', response.data);
-          this.model = response.data.data.model;
-          this.optimizer = response.data.data.optimizer;
-          this.selectStep(this.trainingSteps[2], 2);
-          this.stepThree();
-        } else {
           alert(`在第二步时训练出错`);
           return;
         }
       } catch (error) { console.error('第二步失败', error); }
     },
-    async stepThree() {      
+    async stepTwo() {      
       try {
-        const response = await axios.get('http://localhost:5000/pre-train-step3');
+        const response = await axios.get('http://localhost:5000/pre-train-step2');
         if (response.data.message == "success") {
           console.log('第三步：', response.data);
-          this.statsList = response.data.data.stats_list;
-          this.tokenList = response.data.data.token_list;
-          this.selectStep(this.trainingSteps[3], 3);
-          this.stepFour();
+          this.model = response.data.data.model;
+          this.optimizer = response.data.data.optimizer;
+          this.selectStep(this.trainingSteps[2], 2);
+          this.stepThree();
         } else {
           alert(`在第三步时训练出错`);
           return;
         }
       } catch (error) { console.error('第三步失败', error); }
+    },
+    async stepThree() {      
+      try {
+        const response = await axios.get('http://localhost:5000/pre-train-step3');
+        if (response.data.message == "success") {
+          console.log('第四步：', response.data);
+          this.statsList.value = response.data.data.stats_list;
+          this.tokenList = response.data.data.token_list;
+          this.selectStep(this.trainingSteps[3], 3);
+          this.stepFour();
+        } else {
+          alert(`在第四步时训练出错`);
+          return;
+        }
+      } catch (error) { console.error('第四步失败', error); }
       
     },
     stepFour() {
-      this.initChart(this.trainingSteps[4].chartId);
+      this.updateTokenList();
+      this.stepFive();
+    },
+    stepFive() {
+      // Loss.methods.initChart();
       this.selectStep(this.trainingSteps[4], 4);
-      alert("完成整个训练过程")
+      init({ message: "训练完成 :)", color: 'success' });
     },
     resetForm() {
       this.form = {
@@ -594,9 +595,7 @@ export default {
         this.mfrs.push(newMfr);
       }
     },
-    // FIXME:
     updateTokenList() {
-      // console.log("tokenData: ", tokenData)
       for (let i = 0; i < tokenData.data.token_list.length; i++) {
         const newToken = {
           id: i+1,
@@ -605,7 +604,6 @@ export default {
           mask: tokenData.data.token_list[i].mask,
           pred: tokenData.data.token_list[i].pred
         };
-        // console.log("newToken: ", newToken);
         this.token_list.push(newToken);
       }
     },
@@ -635,7 +633,7 @@ export default {
 }
 
 .gauge-container::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none;
 }
 
 .gauge-chart {
@@ -828,11 +826,11 @@ pre {
 }
 
 .dual-chart-container {
-  display: flex; /* 使用 flex 布局 */
+  display: flex;
 }
 
 .chart-wrapper {
-  flex: 1; /* 让每个图表容器平分父容器的宽度 */
-  margin-right: 10px; /* 可选：设置图表之间的间距 */
+  flex: 1;
+  margin-right: 10px;
 }
 </style>

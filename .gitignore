@@ -1,4 +1,7 @@
 *.pptx
+*.pcap
+*.csv
+*.pyc
 
 /backend/YaTC/data/
 /backend/YaTC/MFR_test/

@@ -15,12 +15,13 @@ def makedir(path):
     except Exception as E:
         pass
 
-
-def read_MFR_bytes(pcap_dir):
-    packets = scapy.rdpcap(pcap_dir)
+def read_MFR_bytes(packets):
     data = []
     for packet in packets:
-        header = (binascii.hexlify(bytes(packet['IP']))).decode()
+        try:
+            header = (binascii.hexlify(bytes(packet['IP']))).decode()
+        except:
+            header = (binascii.hexlify(bytes(packet['IPv6']))).decode()
         try:
             payload = (binascii.hexlify(bytes(packet['Raw']))).decode()
             header = header.replace(payload, '')
@@ -38,8 +39,8 @@ def read_MFR_bytes(pcap_dir):
         if len(data) >= 5:
             break
     if len(data) < 5:
-        for i in range(5-len(data)):
-            data.append(('0'*160, '0'*480))
+        for i in range(5 - len(data)):
+            data.append(('0' * 160, '0' * 480))
     final_data = ''
     for h, p in data:
         final_data += h
@@ -55,16 +56,27 @@ def MFR_generator(flows_pcap_path, output_path):
     for cla in tqdm(classes):
         makedir(cla.replace(flows_pcap_path, output_path))
     for flow in tqdm(flows):
-        content = read_MFR_bytes(flow)
-        content = np.array([int(content[i:i + 2], 16) for i in range(0, len(content), 2)])
-        fh = np.reshape(content, (40, 40))
-        fh = np.uint8(fh)
-        im = Image.fromarray(fh)
-        im.save(flow.replace('.pcap', '.png').replace(flows_pcap_path, output_path))
+        packets = scapy.rdpcap(flow)
+        # packets.show()
+        packet_count = len(packets)
+        
+        chunk_count = (packet_count + 4) // 5
+        for i in range(chunk_count):
+            chunk_packets = packets[i * 5: (i + 1) * 5]
+            content = read_MFR_bytes(chunk_packets)
+            content = np.array([int(content[j:j + 2], 16) for j in range(0, len(content), 2)])
+            fh = np.reshape(content, (40, 40))
+            fh = np.uint8(fh)
+            im = Image.fromarray(fh)
+            output_file = f"{flow.replace('.pcap', '')}-{i+1}.png".replace(flows_pcap_path, output_path)
+            im.save(output_file)
 
 
-if __name__ == '__main__':
+def main():
     # 设置输入和输出路径
     flows_pcap_path = './MFR_test/pcap_files'
     output_path = './MFR_test/output_images'
     MFR_generator(flows_pcap_path, output_path)
+
+if __name__ == '__main__':
+    main()

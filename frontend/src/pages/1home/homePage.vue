@@ -1,17 +1,17 @@
 <template>
   <div>
     <!-- 网络图 -->
-    <div id="networkGraph" class="chart" style="width: 100%; height: 400px; margin-top: 20px;"></div>
+    <!-- <div id="networkGraph" class="chart" style="width: 100%; height: 400px; margin-top: 20px;"></div> -->
 
     <!-- 图表 -->
     <div class="charts" style="display: flex; justify-content: space-between; margin-top: 20px;">
-      <div class="chart" id="attackSourceChart" style="width: 32%; height: 300px;"></div>
-      <div class="chart" id="attackTargetChart" style="width: 32%; height: 300px;"></div>
-      <div class="chart" id="attackPortChart" style="width: 32%; height: 300px;"></div>
+      <div class="chart" id="attackSourceChart" style="width: 32%; height: 400px;"></div>
+      <div class="chart" id="attackTargetChart" style="width: 32%; height: 400px;"></div>
+      <div class="chart" id="attackPortChart" style="width: 32%; height: 400px;"></div>
     </div>
     <div class="charts" style="display: flex; justify-content: space-between; margin-top: 20px;">
-      <div class="chart" id="trainLossChart" style="width: 49%; height: 300px;"></div>
-      <div class="chart" id="trainAccuracyChart" style="width: 49%; height: 300px;"></div>
+      <div class="chart" id="trainLossChart" style="width: 49%; height: 400px;"></div>
+      <div class="chart" id="trainAccuracyChart" style="width: 49%; height: 400px;"></div>
     </div>
   </div>
 </template>
@@ -29,47 +29,47 @@ export default {
   },
   methods: {
     initCharts() {
-      this.initEncryptedTrafficGraph();
+      // this.initEncryptedTrafficGraph();
       this.initAttackSourceChart();
       this.initAttackTargetChart();
       this.initAttackPortChart();
       this.initTrainLossChart();
       this.initTrainAccuracyChart();
     },
-    initEncryptedTrafficGraph() {
-      var chartDom = document.getElementById('networkGraph');
-      var myChart = echarts.init(chartDom);
-      var option = {
-        title: {
-          text: '加密流量图',
-        },
-        series: [
-          {
-            type: 'graph',
-            layout: 'force',
-            data: this.getEncryptedTrafficData(),
-            links: this.getEncryptedTrafficLinks(),
-            roam: true,
-            label: {
-              show: true,
-              position: 'right',
-              formatter: '{b}'
-            },
-            force: {
-              repulsion: 500, // 增加排斥力，避免节点过度聚集
-              gravity: 0.1,  // 调整引力，使节点向中心靠拢
-              edgeLength: [50, 100],  // 线的长度范围，控制节点间距离的松紧
-              layoutAnimation: true
-            },
-            lineStyle: {
-              width: 2,  // 线条宽度
-              curveness: 0.3  // 线条的弯曲度
-            }
-          },
-        ],
-      };
-      myChart.setOption(option);
-    },
+    // initEncryptedTrafficGraph() {
+    //   var chartDom = document.getElementById('networkGraph');
+    //   var myChart = echarts.init(chartDom);
+    //   var option = {
+    //     title: {
+    //       text: '加密流量图',
+    //     },
+    //     series: [
+    //       {
+    //         type: 'graph',
+    //         layout: 'force',
+    //         data: this.getEncryptedTrafficData(),
+    //         links: this.getEncryptedTrafficLinks(),
+    //         roam: true,
+    //         label: {
+    //           show: true,
+    //           position: 'right',
+    //           formatter: '{b}'
+    //         },
+    //         force: {
+    //           repulsion: 500, // 增加排斥力，避免节点过度聚集
+    //           gravity: 0.1,  // 调整引力，使节点向中心靠拢
+    //           edgeLength: [50, 100],  // 线的长度范围，控制节点间距离的松紧
+    //           layoutAnimation: true
+    //         },
+    //         lineStyle: {
+    //           width: 2,  // 线条宽度
+    //           curveness: 0.3  // 线条的弯曲度
+    //         }
+    //       },
+    //     ],
+    //   };
+    //   myChart.setOption(option);
+    // },
     initAttackSourceChart() {
       var chartDom = document.getElementById('attackSourceChart');
       var myChart = echarts.init(chartDom);
@@ -260,8 +260,12 @@ export default {
     getAttackSourceData() {
       // 返回攻击来源IP的数据
       return [
-        { value: 1048, name: '192.168.1.1' },
+        { value: 2048, name: '192.168.1.1' },
         { value: 735, name: '192.168.1.2' },
+        { value: 1048, name: '192.168.11.1' },
+        { value: 1735, name: '192.168.13.2' },
+        { value: 1048, name: '192.168.13.1' },
+        { value: 735, name: '192.168.1.5' },
         // ...
       ];
     },
@@ -270,6 +274,10 @@ export default {
       return [
         { value: 1048, name: '192.168.1.3' },
         { value: 735, name: '192.168.1.4' },
+        { value: 2048, name: '192.168.1.11' },
+        { value: 2735, name: '192.168.1.12' },
+        { value: 1048, name: '192.168.200.11' },
+        { value: 735, name: '192.168.11.200' },
         // ...
       ];
     },
@@ -278,32 +286,34 @@ export default {
       return [
         { value: 1048, name: '80' },
         { value: 735, name: '443' },
+        { value: 1048, name: '23' },
+        { value: 735, name: '25' },
         // ...
       ];
     },
     getTrainEpochs() {
       // 返回训练的epoch
-      return ['Epoch 1', 'Epoch 2', 'Epoch 3', // ...
+      return ['Epoch 1', 'Epoch 2', 'Epoch 3', 'Epoch 4', 'Epoch 5', 'Epoch 6', 'Epoch 7', 'Epoch 8', 'Epoch 9', 'Epoch 9'
       ];
     },
     getTrainLossData() {
       // 返回训练损失数据
-      return [0.6, 0.4, 0.3, // ...
+      return [0.98, 0.91, 0.78, 0.68, 0.55, 0.51, 0.43, 0.38, 0.31, 0.25 // ...
       ];
     },
     getValLossData() {
       // 返回验证损失数据
-      return [0.7, 0.5, 0.4, // ...
+      return [0.88, 0.81, 0.72, 0.58, 0.55, 0.46, 0.33, 0.3, 0.26, 0.18 // ...
       ];
     },
     getTrainAccuracyData() {
       // 返回训练准确率数据
-      return [0.6, 0.7, 0.8, // ...
+      return [0.88, 0.81, 0.72, 0.58, 0.55, 0.46, 0.33, 0.3, 0.26, 0.18 // ...
       ];
     },
     getValAccuracyData() {
       // 返回验证准确率数据
-      return [0.5, 0.6, 0.7, // ...
+      return [0.98, 0.91, 0.78, 0.68, 0.55, 0.51, 0.43, 0.38, 0.31, 0.25 // ...
       ];
     }
   }

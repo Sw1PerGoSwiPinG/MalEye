@@ -13,8 +13,8 @@
     </div>
     <div v-for="group in filteredDataset" :key="group.name" class="group-container">
       <div class="group-header">
-        <span class="group-name">名称： {{ group.name }}</span>
-        <span class="group-description">描述： {{ group.description }}</span>
+        <span class="group-title">数据集 - {{ group.name }}</span>
+        <span class="group-title">描述： {{ description[group.name] }}</span>
       </div>
       <div class="category-container" v-for="category in group.categories" :key="category">
         <span class="category-name">{{ category }}</span>
@@ -22,8 +22,9 @@
           <div v-for="image in group.images[category]" :key="image" class="image-box">
             <img :src="image" class="image-feature" />
           </div>
+          <div v-if="totalNumber[group.name][category] >= 15" class="more-img-box">+{{ totalNumber[group.name][category] }}</div>
         </div>
-        <button @click="selectCategory(group.name, category)" class="upload-button">上传</button>
+        <button @click="selectCategory(group.name, category)" class="upload-button">上传PCAP文件</button>
       </div>
     </div>
 
@@ -77,6 +78,14 @@ export default {
       selectedFile: null,
       selectedGroup: '',
       selectedCategory: '',
+      totalNumber: {},
+      description: {
+        'USTC-TFC2016_MFR' : '涵盖了 70 种不同类型的应用程序的流量数据集',
+        'ISCXVPN2016_MFR'  : '针对虚拟私有网络(VPN)的网络流量数据集',
+        'ISCXTor2016_MFR'  : '针对洋葱路由 Tor 网络的入侵检测数据集',
+        'CICIoT2022_MFR'   : '针对物联网设备的网络流量和异常行为检测数据集',
+        'UbuntuTraffic_MFR': '利用 Ubuntu 虚拟机构造的流量分类数据集'
+      }
     };
   },
   computed: {
@@ -190,17 +199,18 @@ export default {
       this.selectedCategory = '';
     },
     searchData() {
-      // Implement search logic if needed
+      console.log('搜索数据');
     },
     deleteData() {
       console.log('删除数据');
-      // Implement delete logic if needed
     },
     async fetchAllImages() {
       try {
         const response = await axios.get('http://127.0.0.1:5000/get_all_images');
         if (response.status === 200) {
           this.updateAllImages(response.data.images);
+          this.totalNumber = response.data.total_number;
+          console.log("类别数量", this.totalNumber);
         }
       } catch (error) {
         console.error('获取所有图片失败:', error);
@@ -209,7 +219,7 @@ export default {
     }
   },
   async mounted() {
-    await this.fetchAllImages(); // Fetch initial data here
+    await this.fetchAllImages();
   }
 };
 </script>
@@ -234,18 +244,20 @@ export default {
   border-radius: 5px;
   cursor: pointer;
   color: white;
+  font-weight: bold;
 }
 
 .add-button {
-  background-color: #4caf50;
+  background-color: #228200;
 }
 
 .delete-button {
-  background-color: #f44336;
+  background-color: #e42222;
 }
 
 .upload-button {
-  background-color: #2196f3;
+  background-color: #154ec1;
+  margin: 10px 20px;
 }
 
 .search-input,
@@ -270,50 +282,62 @@ export default {
 
 .search-button {
   padding: 10px 20px;
-  background-color: #2196f3;
+  background-color: #154ec1;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 .group-container {
   margin-bottom: 20px;
-  background-color: #f0f0f0;
-  padding: 10px;
+  padding: 20px 30px;
   border-radius: 5px;
+  background-color: white;
 }
 
 .group-header {
   display: flex;
   justify-content: space-between;
   font-size: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #154ec1;
+}
+
+.group-title {
+  font-size: large;
+  font-weight: bold;
+  padding: 10px 0;
   margin-bottom: 10px;
 }
 
 .category-container {
   margin-bottom: 10px;
-  background-color: #e3f2fd;
   padding: 10px;
   border-radius: 5px;
+  background-color: #eef3fb;
+  border: 1px dashed #154ec1;
 }
 
 .category-name {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 5px;
+  margin: 5px 0;
+  color: #154ec1;
 }
 
 .images-container {
   display: flex;
   flex-wrap: wrap;
+  padding: 0 1%;
 }
 
 .image-box {
-  margin: 5px;
+  margin: 0 7px;
   padding: 5px;
-  background-color: white;
+  background-color: black;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
@@ -321,6 +345,19 @@ export default {
 .image-feature {
   width: 50px;
   height: 50px;
+}
+
+.more-img-box {
+  width: 61px;
+  height: 61px;
+  margin: 0 7px;
+  padding: 5px;
+  color: white;
+  background-color: #666e75;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: center;
+  padding-top: 20px;
 }
 
 .modal {
@@ -376,10 +413,5 @@ export default {
 
 .remove-button:hover {
   background-color: #d32f2f;
-}
-
-.image-container {
-  display: inline-block;
-  margin: 5px;
 }
 </style>

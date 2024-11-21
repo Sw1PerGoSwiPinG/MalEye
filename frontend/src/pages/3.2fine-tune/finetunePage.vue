@@ -125,7 +125,8 @@
         </div>
         <div v-else-if="curStep == 4 && start">
           <!-- <div :id="selectedStep[curStep].chartId" class="chart" v-if="selectedStep.chartId"></div> -->
-          <LossAndLr></LossAndLr>
+          <Loss></Loss>
+          <Lr></Lr>
         </div>
       </div>
     </div>
@@ -135,12 +136,13 @@
 <script>
 import * as echarts from 'echarts';
 import axios from 'axios';
-import LossAndLr from '../../components/LossAndLr.vue';
+import Loss from '../../components/Loss.vue';
+import Lr from '../../components/Lr.vue';
 import ModelTree from '../../components/ModelTree.vue';
 
 export default {
   components: { 
-    LossAndLr, ModelTree
+    ModelTree, Loss, Lr
   },
   name: 'ModelPage',
   data() {

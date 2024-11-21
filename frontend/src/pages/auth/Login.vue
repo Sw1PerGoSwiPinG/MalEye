@@ -1,6 +1,6 @@
 <template>
   <VaForm ref="form" @submit.prevent="submit">
-    <h1 class="font-semibold text-4xl mb-4" style="margin-bottom: 10%;">YaTC恶意流量检测系统</h1>
+    <h1 class="font-semibold text-4xl mb-4" style="margin-bottom: 10%;">YaTC 恶意流量检测系统</h1>
     <p class="text-base mb-4 leading-5">
       还没有账号？
       <RouterLink :to="{ name: 'signup' }" class="font-semibold text-primary">注册</RouterLink>

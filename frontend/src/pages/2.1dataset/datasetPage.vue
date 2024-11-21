@@ -21,7 +21,7 @@
             <th>SourcePort</th>
             <th>DestPort</th>
             <th>Protocol</th>
-            <th>ApplicationName</th>
+            <th>ProtocolName</th>
             <th>Label</th>
           </tr>
         </thead>
@@ -34,7 +34,9 @@
             <td>{{ data.dst_port }}</td>
             <td>{{ data.protocol }}</td>
             <td>{{ data.application_name }}</td>
-            <td :class="{'label-malicious': data.label === 'Benign', 'label-normal': data.label === 'Malware'}">{{ data.label }}</td>
+            <td :class="{'label-malicious': data.label === 'Benign', 'label-normal': data.label === 'Malware'}">
+              <div class="label-box" :style="{backgroundColor: data.label==='malware' ? '#e42222' : '#228200', color: 'white'}">{{ data.label }}</div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -46,11 +48,13 @@
         <h2>添加流量数据</h2>
         <div class="modal-body">
           <input type="file" @change="handleFileUpload" accept=".pcap" />
-          <select v-model="selectedFlag">
+          <!-- <select v-model="selectedFlag">
             <option value="" disabled>选择包类型</option>
-            <option value="benign">Benign</option>
-            <option value="malware">Malware</option>
-          </select>
+            <option value="benign">Benign良性</option>
+            <option value="malware">Malware恶行</option>
+          </select> -->
+          <VaSelect
+            v-model="selectedFlag" :options="options" placeholder="选择流量类型" style="max-width: 150px;"/>
           <button @click="uploadFile" class="upload-button">上传检测流量</button>
         </div>
       </div>
@@ -72,7 +76,11 @@ export default {
       hasMoreData: true,
       showModal: false,
       selectedFile: null,
-      selectedFlag: ''
+      selectedFlag: '',
+      options: [
+        "benign",
+        "malware",
+      ]
     };
   },
   computed: {
@@ -191,14 +199,15 @@ export default {
   border-radius: 5px;
   cursor: pointer;
   color: white;
+  font-weight: bold;
 }
 
 .add-button {
-  background-color: #4caf50;
+  background-color: #228200;
 }
 
 .delete-button {
-  background-color: #f44336;
+  background-color: #e42222;
 }
 
 .search-input {
@@ -218,11 +227,12 @@ export default {
 
 .search-button {
   padding: 10px 20px;
-  background-color: #2196f3;
+  background-color: #154ec1;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 .dataset-table-container {
@@ -250,12 +260,12 @@ th, td {
   height: 50px;
 }
 
-.label-malicious {
-  color: red;
-}
-
-.label-normal {
-  color: green;
+.label-box {
+  width: 80px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-weight: bold;
+  text-align: center;
 }
 
 .modal {
@@ -287,6 +297,7 @@ th, td {
 }
 
 .upload-button {
+  margin-left: 20%;
   margin-top: 20px;
   padding: 10px 20px;
   background-color: #4caf50;

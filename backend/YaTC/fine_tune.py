@@ -31,6 +31,8 @@ import YaTC.models_YaTC as models_YaTC
 
 from YaTC.engine import train_one_epoch, evaluate
 
+logSocket = object()
+
 """
 参数说明：
     - batch_size：每个 GPU 的批量大小。
@@ -143,13 +145,13 @@ def get_args_parser():
                         help='Probability of switching to cutmix when both mixup and cutmix enabled')
     parser.add_argument('--mixup_mode', type=str, default='batch',
                         help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
-    parser.add_argument('--finetune', default='./output_dir/pretrained-model.pth',
+    parser.add_argument('--finetune', default='./YaTC/output_dir/pretrained-model.pth',
                         help='finetune from checkpoint')
     parser.add_argument('--data_path', default='./data/ISCXVPN2016_MFR', type=str,
                         help='dataset path')
     parser.add_argument('--nb_classes', default=7, type=int,
                         help='number of the classification types')
-    parser.add_argument('--output_dir', default='',
+    parser.add_argument('--output_dir', default='./output_dir',
                         help='path where to save, empty for no saving')
     parser.add_argument('--log_dir', default='./output_dir',
                         help='path where to tensorboard log')
@@ -165,11 +167,13 @@ def get_args_parser():
                         help='Perform evaluation only')
     parser.add_argument('--dist_eval', action='store_true', default=False,
                         help='Enabling distributed evaluation (recommended during training for faster monitor')
-    parser.add_argument('--num_workers', default=10, type=int)
+    # parser.add_argument('--num_workers', default=10, type=int)
+    parser.add_argument('--num_workers', default=1, type=int)
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
-    parser.set_defaults(pin_mem=True)
+    # parser.set_defaults(pin_mem=True)
+    parser.set_defaults(pin_mem=False)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -194,14 +198,17 @@ def build_dataset(is_train, args):
     dataset = datasets.ImageFolder(root, transform=transform)
 
     print(dataset)
+    logSocket.emit("message", str(dataset), namespace='/finetune')
 
     return dataset
 
-def main(args):
+def main(args, socketio):
     misc.init_distributed_mode(args)
 
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(', ', ',\n'))
+    logSocket.emit("message", 'job dir: {}'.format(os.path.dirname(os.path.realpath(__file__)), namespace='/finetune'))
+    logSocket.emit("message", "{}".format(args).replace(', ', ',\n'), namespace='/finetune')
 
     device = torch.device(args.device)
 
@@ -303,7 +310,8 @@ def main(args):
 
     print("Model = %s" % str(model_without_ddp))
     print('number of params (M): %.2f' % (n_parameters / 1.e6))
-
+    logSocket.emit("message", "Model = %s" % str(model_without_ddp), namespace='/finetune')
+    logSocket.emit("message", 'number of params (M): %.2f' % (n_parameters / 1.e6), namespace='/finetune')
     eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
 
     if args.lr is None:  # only base_lr is specified
@@ -311,9 +319,13 @@ def main(args):
 
     print("base lr: %.2e" % (args.lr * 256 / eff_batch_size))
     print("actual lr: %.2e" % args.lr)
+    logSocket.emit("message", "base lr: %.2e" % (args.lr * 256 / eff_batch_size), namespace='/finetune')
+    logSocket.emit("message", "actual lr: %.2e" % args.lr , namespace='/finetune')
 
     print("accumulate grad iterations: %d" % args.accum_iter)
     print("effective batch size: %d" % eff_batch_size)
+    logSocket.emit("message", "accumulate grad iterations: %d" % args.accum_iter, namespace='/finetune')
+    logSocket.emit("message", "effective batch size: %d" % eff_batch_size, namespace='/finetune')
 
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
@@ -336,6 +348,7 @@ def main(args):
         criterion = torch.nn.CrossEntropyLoss()
 
     print("criterion = %s" % str(criterion))
+    logSocket.emit("message", "criterion = %s" % str(criterion) , namespace='/finetune')
 
     misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
 
@@ -345,6 +358,8 @@ def main(args):
         exit(0)
 
     print(f"Start training for {args.epochs} epochs")
+    logSocket.emit("message", f"Start training for {args.epochs} epochs", namespace='/finetune')
+
     start_time = time.time()
     max_accuracy = 0.0
     max_f1 = 0.0
@@ -357,10 +372,12 @@ def main(args):
             optimizer, device, epoch, loss_scaler,
             args.clip_grad, mixup_fn,
             log_writer=log_writer,
-            args=args
+            model_without_ddp=model_without_ddp,
+            args=args,
+            logSocket=logSocket
         )
 
-        test_stats = evaluate(data_loader_val, model, device)
+        test_stats = evaluate(data_loader_val, model, device, logSocket=logSocket)
 
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.4f}")
         max_accuracy = max(max_accuracy, test_stats["acc1"])
@@ -368,23 +385,54 @@ def main(args):
         max_f1 = max(max_f1, test_stats["macro_f1"])
         print(f'Max Accuracy: {max_accuracy:.4f}')
         print(f'Max F1: {max_f1:.4f}')
+        
+        logSocket.emit("message", f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.4f}", namespace='/finetune')
+        logSocket.emit("message", f"F1 of the network on the {len(dataset_val)} test images: {test_stats['macro_f1']:.4f}", namespace='/finetune')
+        logSocket.emit("message", f'Max Accuracy: {max_accuracy:.4f}', namespace='/finetune')
+        logSocket.emit("message", f'Max F1: {max_f1:.4f}', namespace='/finetune')
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
 
-        with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
-            f.write(json.dumps(log_stats) + "\n")
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
+    logSocket.emit("message", 'Training time {}'.format(total_time_str), namespace='/finetune')
+    
 
-
-if __name__ == '__main__':
+def run(args_dict, socketio):
     args = get_args_parser()
     args = args.parse_args()
+    
+    args.epochs = args_dict['epochs']
+    args.warmup_epochs = args_dict['warmup_epochs']
+    args.batch_size = args_dict['batch_size']
+    args.blr = args_dict['blr']
+    args.drop_path = args_dict['drop_path']
+    args.weight_decay = args_dict['weight_decay']
+    args.seed = args_dict['seed']
+    args.data_path = f"./YaTC/data/{args_dict['dataset']}_MFR"
+    args.nb_classes = args_dict['nb_classes']
+    
+    global logSocket
+    logSocket = socketio
+
+    print(args)
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    main(args)
+    
+    try:
+        main(args, socketio)
+    except Exception as e:
+        print(e)
+
+if __name__ == '__main__':
+    # args = get_args_parser()
+    # args = args.parse_args()
+    # if args.output_dir:
+    #     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    # main(args)
+    run()
